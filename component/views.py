@@ -8,6 +8,7 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from itertools import groupby
 import json
+import hashlib
 from collections import OrderedDict
 from .kobotoolbox import *
 from .forms import KMLUpload
@@ -22,6 +23,13 @@ from django.core.exceptions import PermissionDenied
 from concurrent.futures import ThreadPoolExecutor
 
 slum_list = []
+
+def get_request_hash(params: dict) -> str:
+    """
+    Generates a SHA256 hash from the request parameters dict.
+    """
+    params_string = json.dumps(params, sort_keys=True)  # Ensure consistent order
+    return hashlib.sha256(params_string.encode('utf-8')).hexdigest()
 
 @staff_member_required
 @permission_required('component.can_upload_KML', raise_exception=True)
@@ -138,6 +146,7 @@ def get_component(request, slum_id):
             dtcomponent[key] = OrderedDict()
         for c in comp:
             dtcomponent[key][c['name']] = c
+    
     return HttpResponse(json.dumps(dtcomponent),content_type='application/json')
 
 def format_data(rhs_data):

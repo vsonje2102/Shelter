@@ -12,7 +12,15 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+import builtins, inspect
 
+old_print = print
+def debug_print(*args, **kwargs):
+    frame = inspect.currentframe().f_back
+    location = f"{frame.f_code.co_filename}:{frame.f_lineno}"
+    old_print(f"[{location}]", *args, **kwargs)
+
+builtins.print = debug_print
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
@@ -25,7 +33,7 @@ SECRET_KEY = 'd75_awn2qsnk!z*m)gdx(7^u1b4rqnn+pjoofg(4qa%^#bp&3w'
 DEBUG = True
 
 #ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['.shelter-associates.org']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = (

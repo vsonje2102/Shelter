@@ -1,13 +1,9 @@
-import time
 from django.test import RequestFactory
+from django.contrib.auth.models import AnonymousUser
 from component import views
+import time
 
 def run_test(slum_ids=None):
-    """
-    Measure execution time of get_component for given slum IDs.
-
-    :param slum_ids: list of slum IDs to test, default [1971]
-    """
     if slum_ids is None:
         slum_ids = [1971]
 
@@ -15,7 +11,8 @@ def run_test(slum_ids=None):
 
     for slum_id in slum_ids:
         request = factory.get(f'/component/get_component/{slum_id}')
-        
+        request.user = AnonymousUser()  # <-- fix here
+
         start = time.perf_counter()
         response = views.get_component(request, slum_id)
         end = time.perf_counter()
