@@ -135,7 +135,6 @@ function initMap(){
                         "Saharanpur":new L.LatLng(29.96813172,77.54673382),
                         "Pune District":new L.LatLng(18.57054718,74.07657987),
                         "Mohanlalganj City":new L.LatLng(26.66998253,80.98541311),
-                        "Ichalkaranji":new L.LatLng(16.6886,74.4593),
                         "Nilgiri District":new L.LatLng(11.45878141, 76.64049998)};
     var pos = new L.LatLng(18.640083, 73.825560);
     if ($('#city_name').val() in center_data)
@@ -175,6 +174,37 @@ function readJSONFile(filePath, callback, param1, param2) {
         });
 }
 
+// Get filters and RIM data after selecting particular slum
+// function slum_data_fetch(slumId){
+//     let compochk = $("#compochk");
+//     compochk.html('<div style="height:300px;width:300px;"><div id="loading-img"></div></div>');
+// 	var ajax_calls = [$.ajax({
+//             url : '/component/get_component/' + slumId,
+//             type : "GET",
+//             contenttype : "json"
+//         }),
+//         $.ajax({
+//             url : '/component/get_kobo_RIM_data/' + slumId,
+//             type : "GET",
+//             contenttype : "json"
+//         })
+// 	];
+
+//     Promise.all(ajax_calls).then(function(result) {
+//         global_slum_id =slumId;
+//         const visible = getQueryParam('mr');
+//         if (visible=='1'){
+//             readJSONFile(`/admin/translations/?mr=${visible}`, generate_filter, slumId, result[0])
+//         }else{
+//             generate_filter(globalJsonData, slumId, result[0]);
+//         }
+//         // generate_filter(globalJsonData, slumId, result[0]);
+//         console.log(" Result [1] printing RIM data");
+//         console.log(result[1]);
+//         generate_RIM(result[1]);
+//     });
+
+// }
 
 // Start loader immediately
 function startLoader() {
@@ -203,10 +233,10 @@ async function slum_data_fetch(slumId) {
     let compochk = $("#compochk");
     let dataContainer = $("#data-container");
     let loaderContainer = $("#loader-container");
-    global_slum_id = slumId;
+    
     dataContainer.html('');
     loaderContainer.html('<div id="loading-img"></div>');
-
+    // compochk.html('<div style="height:300px;width:300px;"><div id="loading-img"></div></div>');
     const loader = $("#loader-container")[0]; // loader element
 
     const response = await fetch(`/component/get_component/${slumId}`);
@@ -232,7 +262,19 @@ async function slum_data_fetch(slumId) {
     }
      // hide loader at the end
     $("#loading-img").hide();
- 
+    //compochk.append('</div></div>'); // append closing tags to ensure all appended content is rendered
+    try {
+        const rimResponse = await fetch(`/component/get_kobo_RIM_data/${slumId}`);
+        if (!rimResponse.ok) throw new Error("Failed to fetch RIM data");
+
+        const rimData = await rimResponse.json();
+        console.log("RIM Data:", rimData);
+
+        generate_RIM(rimData); // call the RIM function with fetched data
+
+    } catch (err) {
+        console.error("Error fetching RIM data:", err);
+    }
 }
 
 //Populate RIM data modal pop-up's as per section wise.
@@ -313,8 +355,53 @@ function generate_RIM(result){
         $("div.panel-collapse[name='"+modelsection[k]+"']").prepend('<div name="div_group" >' + '&nbsp;&nbsp;&nbsp;' + '<span><a style="cursor:pointer;color:darkred;" data-toggle="modal" data-target="#'+k+'">View Tabular Data</a><span>' + '</div>');
     });
 }
+// Generates right filter
+// function generate_filter(globalJsonData, slumID, result){
+//     let compochk = $("#compochk");
+//     let counter = 0;
+//     let panel_component = "";
+//     $.each(result, function(k, v){
+//         counter = counter + 1;
+//         panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k] : k;
+// 		panel_component += '<div name="div_group" class=" panel  panel-default panel-heading"> ' +
+// 		                    '<input class="chk" name="grpchk" type="checkbox" onclick="checkAllGroup(this)"></input>&nbsp;&nbsp;<a name="chk_group" data-toggle="collapse" data-parent="#compochk" href="#' + counter + '"><b><span>' + panel_component_value + '</span></b></a>' +
+// 		                    '</br>'
 
+// 		panel_component += '<div id="' + counter + '" class="panel-collapse collapse" name="'+k+'">';
+//         $.each(v, function(k1, v1) {
+//             let chkcolor = v1['blob']['polycolor'];
+//             inner_panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k1] : k1;
+//             let child_length = null;
+//             if (k1 in length_of_components){
+//                 child_length = length_of_components[k1] + " mtr";
+//             }else{
+//                 child_length = v1['child'].length;
+//             };
+//             let icon = v1['icon'] ?? "Not specified";
+//             panel_component += '<div name="div_group" >' + '&nbsp;&nbsp;&nbsp;' +
+//                                  '<input name="chk1" class="chk" style="background:'+chkcolor+';background-color:' + chkcolor + '; " selection="' + k + '" component_type="' + v1['type'] + '" type="checkbox" value="' + k1 + '" onclick="checkSingleGroup(this);" >' +
+//                                    '<a>&nbsp;' + inner_panel_component_value + '</a>&nbsp;(' + child_length + ') <img src="' + icon + '">' +
+//                                  '</input>' +
+//                                 '</div>';
+//             if (k1=="Structure" || k1 == 'Admin Ward Area'){
+//                 houses = {};
+//                  $.each(v1['child'], function(k2,v2){
+//                     v2.shape['properties'] = {};
+//                     v2.shape.properties['name'] = v2.housenumber;
+//                     if (k1 == 'Admin Ward Area'){
+//                         v2.shape.properties['Level'] = 'Admin';
+//                     }
+//                     houses[v2.housenumber] = v2.shape;
+//                  });
+//             }
+//             let obj  = eval('new '+TYPE_COMPONENT[v1.type]+'(v1)');
+//              parse_component[k1] = obj;
+//         });
 
+// 		panel_component += '</div></div>';
+//     });
+//     compochk.html(panel_component);
+// }
 function generate_filter(globalJsonData, slumID, result, chunk_index=null, total_chunks=null){
     let compochk = $("#data-container"); // change to data container
     let counter = compochk.children().length; // continue counter from existing rows
@@ -325,7 +412,7 @@ function generate_filter(globalJsonData, slumID, result, chunk_index=null, total
         let panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k] : k;
         panel_component += '<div name="div_group" class="panel panel-default panel-heading">' +
             '<input class="chk" name="grpchk" type="checkbox" onclick="checkAllGroup(this)"></input>&nbsp;&nbsp;<a name="chk_group" data-toggle="collapse" data-parent="#compochk" href="#' + counter + '"><b><span>' + panel_component_value + '</span></b></a></br>';
-        
+
         panel_component += '<div id="' + counter + '" class="panel-collapse collapse" name="'+k+'">';
         $.each(v, function(k1, v1){
             let chkcolor = v1['blob']['polycolor'];

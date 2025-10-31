@@ -4,11 +4,12 @@ from django.shortcuts import render
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse 
+from django.http import HttpResponse, JsonResponse 
 from itertools import groupby
 from django.db.models import Avg,Sum,Count
 from collections import OrderedDict
 from graphs.models import *
+from graphs.sync_avni_data import avni_sync
 from master.models import *
 from graphs.export_data import *
 import json
@@ -442,6 +443,7 @@ def dashboard_all_cards(request,key):
         if key != 'all':
             dict_filter['id'] = key
         cities = City.objects.filter(**dict_filter).order_by('name__city_name')
+        print(cities)
         for city in cities:
             dashboard_data = DashboardData.objects.filter(city=city).aggregate(Sum('slum_population'),
                                                                                     Sum('household_count'),
@@ -462,6 +464,7 @@ def dashboard_all_cards(request,key):
         return output_data
 
     result = get_data(key)
+    print(result)
     return HttpResponse(json.dumps(result), content_type='application/json')
 
 
@@ -883,3 +886,8 @@ def MemberDataView(request):
         return HttpResponse(json.dumps(member_data),content_type='application/json')
     else:
         return HttpResponse(json.dumps(data),content_type='application/json')
+
+def get_cognito_token_view(request):
+    avni = avni_sync()
+    token = avni.get_cognito_token()
+    return JsonResponse({"token": token})

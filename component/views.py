@@ -34,6 +34,8 @@ def get_request_hash(params: dict) -> str:
 @staff_member_required
 @permission_required('component.can_upload_KML', raise_exception=True)
 def kml_upload(request):
+    print( request.user.has_perm('component.can_upload_KML'))
+    print("kml upload   ")
     context_data = {}
     if request.method == 'POST':
         form = KMLUpload(request.POST or None,request.FILES)
@@ -81,6 +83,7 @@ def get_component(request, slum_id):
 
     fields_code = metadata.filter(type='F').exclude(code="").values_list('code', flat=True)
     fields = list(set([str(x.split(':')[0]) for x in fields_code]))
+    
     rhs_analysis = get_household_analysis_data(slum.electoral_ward.administrative_ward.city.id,slum.id, fields)
 
     lstcomponent = [] 
@@ -89,6 +92,8 @@ def get_component(request, slum_id):
     for metad in metadata:
         component = {}
         component['name'] = metad.name
+        if component['name'] == 'Slum boundary' and slum_id == '1971':
+            component['name'] = 'Town boundary'
         component['level'] = metad.level
         component['section'] = metad.section.name
         component['section_order'] = metad.section.order
@@ -261,10 +266,13 @@ def get_avni_image_urls(rim_obj):
     return rim_obj
 
 def get_kobo_RIM_report_data(request, slum_id):
+    print("get_kobo_RIM_report_data called")
+    print(slum_id)
     try:
         slum = Slum.objects.filter(shelter_slum_code=slum_id)
     except:
         slum = None
+        exit()
     try:
         rim_image = Rapid_Slum_Appraisal.objects.filter(slum_name=slum[0]).values()
     except:

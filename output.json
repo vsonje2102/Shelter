@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Page not found at /component/get_component/1971/</title>
+  <meta name="robots" content="NONE,NOARCHIVE">
+  <style type="text/css">
+    html * { padding:0; margin:0; }
+    body * { padding:10px 20px; }
+    body * * { padding:0; }
+    body { font:small sans-serif; background:#eee; color:#000; }
+    body>div { border-bottom:1px solid #ddd; }
+    h1 { font-weight:normal; margin-bottom:.4em; }
+    h1 span { font-size:60%; color:#666; font-weight:normal; }
+    table { border:none; border-collapse: collapse; width:100%; }
+    td, th { vertical-align:top; padding:2px 3px; }
+    th { width:12em; text-align:right; color:#666; padding-right:.5em; }
+    #info { background:#f6f6f6; }
+    #info ol { margin: 0.5em 4em; }
+    #info ol li { font-family: monospace; }
+    #summary { background: #ffc; }
+    #explanation { background:#eee; border-bottom: 0px none; }
+  </style>
+</head>
+<body>
+  <div id="summary">
+    <h1>Page not found <span>(404)</span></h1>
+    <table class="meta">
+      <tr>
+        <th>Request Method:</th>
+        <td>GET</td>
+      </tr>
+      <tr>
+        <th>Request URL:</th>
+        <td>http://127.0.0.1:8000/component/get_component/1971/</td>
+      </tr>
+      
+    </table>
+  </div>
+  <div id="info">
+    
+      <p>
+      Using the URLconf defined in <code>shelter.urls</code>,
+      Django tried these URL patterns, in this order:
+      </p>
+      <ol>
+        
+          <li>
+            
+                ^$
+                [name='slummap']
+            
+          </li>
+        
+          <li>
+            
+                ^home/
+                [name='login_success']
+            
+          </li>
+        
+          <li>
+            
+                ^accounts/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^accounts/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^(?P&lt;key&gt;city::(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))$
+                [name='city_map_base64']
+            
+          </li>
+        
+          <li>
+            
+                ^(?P&lt;key&gt;city::(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=))/(?P&lt;slumname&gt;.*)$
+                [name='city_map_base64']
+            
+          </li>
+        
+          <li>
+            
+                ^(?P&lt;key&gt;city::([A-Za-z0-9 ]*)?)$
+                [name='city_map']
+            
+          </li>
+        
+          <li>
+            
+                ^(?P&lt;key&gt;city::([A-Za-z0-9 ]*)?)/(?P&lt;slumname&gt;.*)$
+                [name='city_mapp']
+            
+          </li>
+        
+          <li>
+            
+                ^dashboard/(?P&lt;key&gt;city::([A-Za-z0-9 ]*)?)$
+                [name='dashboard_view']
+            
+          </li>
+        
+          <li>
+            
+                ^admin/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^$
+                [name='kml_upload']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_component/(?P&lt;slum_id&gt;\d+)$
+                [name='get_component']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_kobo_RIM_data/(?P&lt;slum_id&gt;\d+)$
+                [name='get_kobo_RIM_data']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_kobo_RHS_list/(?P&lt;slum_id&gt;\d+)/(?P&lt;house_num&gt;\d+)$
+                [name='get_kobo_RHS_data']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_kobo_RIM_report_data/(?P&lt;slum_id&gt;\d+)$
+                [name='get_kobo_RIM_report_data']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_kobo_FF_report_data/(?P&lt;key&gt;(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$)
+                [name='get_kobo_FF_report_data']
+            
+          </li>
+        
+          <li>
+            
+                ^component/
+                
+            
+                ^get_kobo_drainage_report_data/(?P&lt;slum_id&gt;\d+)$
+                [name='get_kobo_drainage_report_data']
+            
+          </li>
+        
+          <li>
+            
+                ^sponsor/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^mastersheet/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^graphs/
+                
+            
+          </li>
+        
+          <li>
+            
+                api-token-auth/
+                [name='api_token_auth']
+            
+          </li>
+        
+          <li>
+            
+                api/
+                
+            
+          </li>
+        
+          <li>
+            
+                ^static\/(?P&lt;path&gt;.*)$
+                
+            
+          </li>
+        
+          <li>
+            
+                ^media\/(?P&lt;path&gt;.*)$
+                
+            
+          </li>
+        
+      </ol>
+      <p>
+        
+        The current path, <code>component/get_component/1971/</code>, didn't match any of these.
+      </p>
+    
+  </div>
+
+  <div id="explanation">
+    <p>
+      You're seeing this error because you have <code>DEBUG = True</code> in
+      your Django settings file. Change that to <code>False</code>, and Django
+      will display a standard 404 page.
+    </p>
+  </div>
+</body>
+</html>

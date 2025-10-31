@@ -44,14 +44,13 @@ def compute_and_update_cache(request, slum_id, req_hash):
         }
     )
 
-def stream_json_in_chunks(data, chunk_size=1):
+def stream_json_in_chunks(data, chunk_size=4):
     keys = list(data.keys())
     total_keys = len(keys)
-    print("Total keys to stream:", total_keys)
-    print("Chunk size:", chunk_size)
+
     for i in range(0, total_keys, chunk_size):
         chunk_keys = keys[i:i+chunk_size]
-        chunk_data = {k: data[k] for k in chunk_keys}   
+        chunk_data = {k: data[k] for k in chunk_keys}
         yield json.dumps({
             "keys": chunk_data,
             "chunk_index": (i // chunk_size) + 1,
@@ -66,17 +65,14 @@ def get_component_api(request, slum_id):
 
     try:
         cache = APICache.objects.get(request_hash=req_hash)
-        print("Cache hit")
         data = cache.response
         # If cache is expired, start background refresh
         if cache.is_expired():
             
             # Start background refresh
-            print("Cache expired, refreshing in background...")
             threading.Thread(target=compute_and_update_cache, args=(request, slum_id, req_hash)).start()
 
     except APICache.DoesNotExist:
-        print("Cache miss, computing response...")
         # No cache → compute synchronously
         response = views.get_component(request, slum_id)
         if hasattr(response, "data"):
@@ -89,6 +85,5 @@ def get_component_api(request, slum_id):
             response=data,
             expires_at=timezone.now() + TTL
         )
-    # print("Sending response")
-    # print(data)
+
     return StreamingHttpResponse(stream_json_in_chunks(data, chunk_size=4), content_type="application/json")

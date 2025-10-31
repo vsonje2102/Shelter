@@ -67,13 +67,13 @@ def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''
                     record['vaccination_status'] = 'not_vaccinated'
             else:
                 record['vaccination_status'] = 'not_surveyed'
-
+        
         # Checking sbm and toilet by sa for filter.
-        if 'group_oi8ts04/Current_place_of_defecation' in record and record['group_oi8ts04/Current_place_of_defecation'] in cpod_status[:4]:
+        if 'group_oi8ts04/Current_place_of_defecation' in record and record['group_oi8ts04/Current_place_of_defecation'] in cpod_status[:4] and slum_code != 1971:
             record['Final_status'] = 'SBM'
             record['group_oi8ts04/Current_place_of_defecation'] = 'Use CTB'
         if str(household_no) in Toilet_data:
-            if 'group_oi8ts04/Current_place_of_defecation' in record and record['group_oi8ts04/Current_place_of_defecation'] in cpod_status:
+            if 'group_oi8ts04/Current_place_of_defecation' in record and record['group_oi8ts04/Current_place_of_defecation'] in cpod_status and slum_code != 1971:
                 record['group_oi8ts04/Current_place_of_defecation'] = 'Use CTB'
             record['Final_status'] = 'Completed'
 
@@ -87,7 +87,12 @@ def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''
             
             if 'group_oi8ts04/Are_you_interested_in_an_indiv' in record and record['group_oi8ts04/Are_you_interested_in_an_indiv'] == 'Yes':
                 record['remain_intrested'] = 'Yes'   # Checking remining Interested for POST SBM
-        
+        # # print(record['Household_number'], record.get('group_oi8ts04/Current_place_of_defecation','N/A'), record.get('Final_status','N/A'), record.get('vaccination_status','N/A'))
+        # if 'group_oi8ts04/Current_place_of_defecation' in question_fields:
+        #     print("Present")
+        # else:
+        #     print("Not Present")
+        # print(question_fields)
         '''question_fields is the different types of parameter of RHS Data.'''
         for field in question_fields:
             '''field present in rhs data'''
@@ -122,7 +127,6 @@ def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''
                 else:
                     output[field] = {'data_not_available' : [str(household_no), ]}
                     
-   
     return output
 
 def format_data(rhs_data, slum_id,toilet_by_sa = False):

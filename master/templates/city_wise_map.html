@@ -88,9 +88,7 @@ async defer></script>
 <div class="container">
 	<div class="jumbotron" style="background-color:white;">
 	<h3>Spatial Slum Information</h3>
-	<div class="overlay">
-		<div id="loading-img"></div>
-	</div>
+
 	<div id="maphead"></div>
 	<div id="mapdesc" style="width: 750px"></div>
 
@@ -105,7 +103,11 @@ async defer></script>
 	</div>
 	<div>
 		<div id="map" style="float:left"></div>
-		<div id="compochk"  style="float:left;padding-left:15px;overflow-y:auto;height:75%;width:25%"></div>
+		<div id="compochk"  style="float:left;padding-left:15px;overflow-y:auto;height:75%;width:25%">
+			<!-- Data container (new content will be added above loader) -->
+    		<div id="data-container" style="width:100%;"></div>
+			<div id="loader-container" style="height:30px; width:100%;"></div>		
+		</div>
 		<div style="height: 10px;width: 75%"></div>
 		<div style="width: 75%;" id="datatablecontainer">
 			<table id="datatable" class="display" style="width:100% !important;"></table>

@@ -38,12 +38,14 @@ class avni_sync():
         cognito_details = json.loads(cognito_details.text)
         self.poolId = cognito_details['poolId']
         self.clientId = cognito_details['clientId']
-
+    
+    
     def get_cognito_token(self):
         self.get_cognito_details()
         command_data = subprocess.Popen(['node', 'graphs/avni/token.js', self.poolId, self.clientId, settings.AVNI_USERNAME, settings.AVNI_PASSWORD], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = command_data.communicate()
         self.token = stdout.decode("utf-8").replace('\n', '')
+        print(f"auth token = \"{self.token}\"")
         return self.token
 
     def get_city_slum_ids(self, slum_name):
@@ -52,9 +54,9 @@ class avni_sync():
 
     def lastModifiedDateTime(self):
         last_submission_date = HouseholdData.objects.latest('submission_date')
-        # latest_date = last_submission_date.submission_date + timedelta(days=1)
+        latest_date = last_submission_date.submission_date + timedelta(days=1)
         today = datetime.today() + timedelta(days= -1)
-        latest_date = today.strftime('%Y-%m-%dT00:00:00.000Z')
+        latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
         iso = "2024-07-05T05:40:00.000Z"
         return(latest_date)
 
@@ -448,6 +450,7 @@ class avni_sync():
 
     def SaveDailyReportingdata(self):  # checked
         latest_date = self.lastModifiedDateTime()
+        print(latest_date)
         programEncounters_path = 'api/programEncounters?lastModifiedDateTime=' + latest_date + '&encounterType=Daily Reporting'
         result = requests.get(self.base_url + programEncounters_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
         get_page_count = json.loads(result.text)['totalPages']
@@ -456,6 +459,7 @@ class avni_sync():
 
             data = json.loads(send_request.text)['content']
             for j in data:
+                print(data)
                 if j['Voided'] == False and j['observations'] != {}:
                     a, slum_id, HH, d = self.get_household_details(j['Subject ID'])
                     self.DailyReportingData(j['observations'], slum_id, HH)
@@ -696,7 +700,7 @@ class avni_sync():
                                             headers={'AUTH-TOKEN': self.get_cognito_token()})
                 data = json.loads(send_request.text)['content']
                 for j in data:
-                    if not j['Voided'] and j['observations'] != {}:
+                    if not j['Voided'] and j['observations'] != {}: 
                         water_data = j['observations']
                         if 'Type of water connection ?' in water_data:
                             water_data['group_el9cl08/Type_of_water_connection'] = water_data[
@@ -1376,9 +1380,11 @@ class avni_sync():
         section_names = ['General' , 'Water', 'Waste', 'Drainage', 'Gutter', 'Road']
         Update_count = 0
         for data in get_text:
+            print("Processing data:",data)
             if not data['Voided']:
                 slum_name = data['location']['Slum']
                 last_modified_at = dateparser.parse(data['audit']['Last modified at'])
+                
                 with open('graphs/rim_questions_mapping.json') as datafile:
                     rim_data = {}
                     rim_questions = json.load(datafile)
@@ -1420,11 +1426,20 @@ class avni_sync():
     def sync_rim_data(self, slum_id):
         """ Using this method we fetch RIM data slum wise from avni."""
         avni_uuid = self.avni_uuid_details(slum_id)
+        print("Slum avni uuid : ", avni_uuid)
         if avni_uuid:
-            latest_date = '2021-10-31T01:30:00.000Z'   # This is only for Slum-RIM data
+            #atest_date = '2021-10-31T01:30:00.000Z'   # This is only for Slum-RIM data
+            latest_date = '2025-07-24T01:30:00.000Z'
             slumRim_path = 'api/subjects?lastModifiedDateTime=' + latest_date + '&subjectType=' + 'Slum-RIM%20Registration&locationIds=' + avni_uuid
             result = requests.get(self.base_url + slumRim_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
+            print(result)
             get_text = json.loads(result.text)['content']
+            for g in get_text:
+                print(g['location']['Slum'])
+                print(g['Registration date'])
+                print(g['audit']['Last modified at'])
+                print(g['audit']['Created at'])
+                
             update_cnt, rim_add_flag = self.update_rim_data(get_text)
             return  True, update_cnt, rim_add_flag
         else:
