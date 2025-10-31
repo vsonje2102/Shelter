@@ -443,7 +443,6 @@ def dashboard_all_cards(request,key):
         if key != 'all':
             dict_filter['id'] = key
         cities = City.objects.filter(**dict_filter).order_by('name__city_name')
-        print(cities)
         for city in cities:
             dashboard_data = DashboardData.objects.filter(city=city).aggregate(Sum('slum_population'),
                                                                                     Sum('household_count'),
@@ -464,7 +463,6 @@ def dashboard_all_cards(request,key):
         return output_data
 
     result = get_data(key)
-    print(result)
     return HttpResponse(json.dumps(result), content_type='application/json')
 
 
