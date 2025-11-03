@@ -135,8 +135,8 @@ function initMap(){
                         "Saharanpur":new L.LatLng(29.96813172,77.54673382),
                         "Pune District":new L.LatLng(18.57054718,74.07657987),
                         "Mohanlalganj City":new L.LatLng(26.66998253,80.98541311),
-                        "Nilgiri District":new L.LatLng(11.45878141, 76.64049998),
-                        "Ichalkaranji":new L.LatLng(16.68803567359255879, 74.46583551598165229)};
+                        "Ichalkaranji":new L.LatLng(16.6886,74.4593),
+                        "Nilgiri District":new L.LatLng(11.45878141, 76.64049998)};
     var pos = new L.LatLng(18.640083, 73.825560);
     if ($('#city_name').val() in center_data)
     {
@@ -175,72 +175,64 @@ function readJSONFile(filePath, callback, param1, param2) {
         });
 }
 
-// Get filters and RIM data after selecting particular slum
-function slum_data_fetch(slumId){
-    let compochk_refresh = $("#compochk_refresh");
-    compochk_refresh.html('<button id="refreshComponents" class="btn btn-primary" style="margin-bottom:10px;">Refresh Components</button>');
-    compochk_refresh.html(`
-      <button id="refreshComponents"
-        class="btn btn-primary"
-        style="margin-bottom:10px; position:absolute; top:10px; right:10px; z-index:99999;margin-top:150px; margin-right:50px;">
-        Refresh Components
-      </button>
-    `);
-    // Handle button click for forced refresh
-    $(document).off("click", "#refreshComponents").on("click", "#refreshComponents", function() {
-        let btn = $(this);
 
-        // Disable button to avoid spam
-        btn.prop("disabled", true).text("Refreshing...");
+// Start loader immediately
+function startLoader() {
+    $('#loading-bar').css('width', '0%').show();
+}
 
-        $.ajax({
-            url: `/component/get_component/${slumId}`,
-            type: "GET",
-            headers: {
-                "Force-Refresh-Flag": "1"
-            },
-            success: function() {
-                console.log("✅ Refresh triggered successfully");
-                btn.prop("disabled", false).text("Refresh Components");
-            },
-            error: function() {
-                console.error("❌ Error triggering refresh");
-                btn.prop("disabled", false).text("Refresh Components");
-                alert("Failed to refresh. Try again.");
-            }
-        });
-    });
+// Update loader as chunks arrive
+function updateLoader(chunk_index, total_chunks) {
+    let percent = (chunk_index / total_chunks) * 100;
+    $('#loading-bar').css('width', percent + '%');
 
+    if (chunk_index === total_chunks) {
+        $('#loading-bar').hide(); // hide when done
+    }
+}
+
+// Optional: reset loader if needed
+function resetLoader() {
+    $('#loading-bar').css('width', '0%');
+
+}
+
+
+async function slum_data_fetch(slumId) {
 
     let compochk = $("#compochk");
-    compochk.html('<div style="height:300px;width:300px;"><div id="loading-img"></div></div>');
-	var ajax_calls = [$.ajax({
-            url : '/component/get_component/' + slumId,
-            type : "GET",
-            contenttype : "json",
-            headers: {
-                "Force-Refresh-Flag": "0"
-            }
-        }),
-        $.ajax({
-            url : '/component/get_kobo_RIM_data/' + slumId,
-            type : "GET",
-            contenttype : "json"
-        })
-	];
+    let dataContainer = $("#data-container");
+    let loaderContainer = $("#loader-container");
+    global_slum_id = slumId;
+    dataContainer.html('');
+    loaderContainer.html('<div id="loading-img"></div>');
 
-    Promise.all(ajax_calls).then(function(result) {
-        global_slum_id =slumId;
-        const visible = getQueryParam('mr');
-        if (visible=='1'){
-            readJSONFile(`/admin/translations/?mr=${visible}`, generate_filter, slumId, result[0])
-        }else{
-            generate_filter(globalJsonData, slumId, result[0]);
+    const loader = $("#loader-container")[0]; // loader element
+
+    const response = await fetch(`/component/get_component/${slumId}`);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    
+
+    while(true){
+        const { done, value } = await reader.read();
+        if(done) break;
+        buffer += decoder.decode(value, {stream: true});
+
+        let lines = buffer.split('\n'); // assume each chunk ends with \n
+        buffer = lines.pop(); // keep incomplete line for next read
+
+        for(const line of lines){
+            if(line.trim() === '') continue;
+            const chunk = JSON.parse(line);
+            const panel_html = generate_filter(globalJsonData, slumId, chunk.keys, chunk.chunk_index, chunk.total_chunks); // handles table + loader
+            $(loader).before(panel_html);
         }
-        // generate_filter(globalJsonData, slumId, result[0]);
-        generate_RIM(result[1]);
-    });
-
+    }
+     // hide loader at the end
+    $("#loading-img").hide();
+ 
 }
 
 //Populate RIM data modal pop-up's as per section wise.
@@ -321,53 +313,57 @@ function generate_RIM(result){
         $("div.panel-collapse[name='"+modelsection[k]+"']").prepend('<div name="div_group" >' + '&nbsp;&nbsp;&nbsp;' + '<span><a style="cursor:pointer;color:darkred;" data-toggle="modal" data-target="#'+k+'">View Tabular Data</a><span>' + '</div>');
     });
 }
-// Generates right filter
-function generate_filter(globalJsonData, slumID, result){
-    let compochk = $("#compochk");
-    let counter = 0;
-    let panel_component = "";
-    $.each(result, function(k, v){
-        counter = counter + 1;
-        panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k] : k;
-		panel_component += '<div name="div_group" class=" panel  panel-default panel-heading"> ' +
-		                    '<input class="chk" name="grpchk" type="checkbox" onclick="checkAllGroup(this)"></input>&nbsp;&nbsp;<a name="chk_group" data-toggle="collapse" data-parent="#compochk" href="#' + counter + '"><b><span>' + panel_component_value + '</span></b></a>' +
-		                    '</br>'
 
-		panel_component += '<div id="' + counter + '" class="panel-collapse collapse" name="'+k+'">';
-        $.each(v, function(k1, v1) {
+
+function generate_filter(globalJsonData, slumID, result, chunk_index=null, total_chunks=null){
+    let compochk = $("#data-container"); // change to data container
+    let counter = compochk.children().length; // continue counter from existing rows
+    let panel_component = "";
+
+    $.each(result, function(k, v){
+        counter += 1;
+        let panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k] : k;
+        panel_component += '<div name="div_group" class="panel panel-default panel-heading">' +
+            '<input class="chk" name="grpchk" type="checkbox" onclick="checkAllGroup(this)"></input>&nbsp;&nbsp;<a name="chk_group" data-toggle="collapse" data-parent="#compochk" href="#' + counter + '"><b><span>' + panel_component_value + '</span></b></a></br>';
+        
+        panel_component += '<div id="' + counter + '" class="panel-collapse collapse" name="'+k+'">';
+        $.each(v, function(k1, v1){
             let chkcolor = v1['blob']['polycolor'];
-            inner_panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k1] : k1;
-            let child_length = null;
-            if (k1 in length_of_components){
-                child_length = length_of_components[k1] + " mtr";
-            }else{
-                child_length = v1['child'].length;
-            };
+            let inner_panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k1] : k1;
+            let child_length = k1 in length_of_components ? length_of_components[k1] + " mtr" : v1['child'].length;
             let icon = v1['icon'] ?? "Not specified";
-            panel_component += '<div name="div_group" >' + '&nbsp;&nbsp;&nbsp;' +
-                                 '<input name="chk1" class="chk" style="background:'+chkcolor+';background-color:' + chkcolor + '; " selection="' + k + '" component_type="' + v1['type'] + '" type="checkbox" value="' + k1 + '" onclick="checkSingleGroup(this);" >' +
-                                   '<a>&nbsp;' + inner_panel_component_value + '</a>&nbsp;(' + child_length + ') <img src="' + icon + '">' +
-                                 '</input>' +
-                                '</div>';
+
+            panel_component += '<div name="div_group">&nbsp;&nbsp;&nbsp;' +
+                '<input name="chk1" class="chk" style="background:'+chkcolor+';background-color:' + chkcolor + '; " selection="' + k + '" component_type="' + v1['type'] + '" type="checkbox" value="' + k1 + '" onclick="checkSingleGroup(this);" >' +
+                '<a>&nbsp;' + inner_panel_component_value + '</a>&nbsp;(' + child_length + ') <img src="' + icon + '"></input></div>';
+
             if (k1=="Structure" || k1 == 'Admin Ward Area'){
                 houses = {};
-                 $.each(v1['child'], function(k2,v2){
+                $.each(v1['child'], function(k2,v2){
                     v2.shape['properties'] = {};
                     v2.shape.properties['name'] = v2.housenumber;
-                    if (k1 == 'Admin Ward Area'){
-                        v2.shape.properties['Level'] = 'Admin';
-                    }
+                    if (k1 == 'Admin Ward Area') v2.shape.properties['Level'] = 'Admin';
                     houses[v2.housenumber] = v2.shape;
-                 });
+                });
             }
-            let obj  = eval('new '+TYPE_COMPONENT[v1.type]+'(v1)');
-             parse_component[k1] = obj;
+
+            let obj = eval('new '+TYPE_COMPONENT[v1.type]+'(v1)');
+            parse_component[k1] = obj;
         });
 
-		panel_component += '</div></div>';
+        panel_component += '</div></div>';
     });
-    compochk.html(panel_component);
+
+    compochk.append(panel_component); // append instead of overwrite
+
+    if(chunk_index && total_chunks){
+        updateLoader(chunk_index, total_chunks);
+    }   
+
 }
+
+
+
 
 //Event handler for check/uncheck all boxes as per the section
 function checkAllGroup(grpchk){

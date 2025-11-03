@@ -1375,16 +1375,24 @@ class avni_sync():
                     print(e)
         return Update_count
 
-
-    def update_rim_data(self, get_text):
+    def update_rim_data(self, get_text, slum_id):
         section_names = ['General' , 'Water', 'Waste', 'Drainage', 'Gutter', 'Road']
         Update_count = 0
         for data in get_text:
             print("Processing data:",data)
             if not data['Voided']:
                 slum_name = data['location']['Slum']
-                last_modified_at = dateparser.parse(data['audit']['Last modified at'])
-                
+                last_modified_at_raw = data['audit']['Last modified at']
+                try:
+                    last_modified_at = dateparser.parse(last_modified_at_raw)
+                except Exception:
+                    # Fallback for your buggy local setup
+                    last_modified_at = datetime.strptime(last_modified_at_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
+                if last_modified_at:
+                    print("Last modified at parsed:", last_modified_at)
+                else:
+                    print("Last modified at not parsed.")
+                    exit("Failed to parse last modified at date.")
                 with open('graphs/rim_questions_mapping.json') as datafile:
                     rim_data = {}
                     rim_questions = json.load(datafile)
@@ -1392,8 +1400,17 @@ class avni_sync():
                         section_map_data = self.map_rim_data(data['observations'], rim_questions[section])
                         rim_data[section] = section_map_data
                     rim_data['Toilet'] = []
-                    slum_id, city_id = self.get_city_slum_ids(slum_name)
+                    # slum_id, city_id = self.get_city_slum_ids(slum_name)
+                    slum_id, city_id = Slum.objects.filter(id=slum_id).values_list(
+                        "id",
+                        "electoral_ward__administrative_ward__city__id"
+                    ).first()
                     slum_rim_obj = SlumData.objects.filter(slum_id = slum_id)
+                    print("Slum rim object:", slum_rim_obj)
+                    print("Rim data to be updated:", rim_data)
+                    print("Last modified at:", last_modified_at)
+                    print("Slum ID:", slum_id)
+                    print("Slum name:", slum_name)
                     if slum_rim_obj.exists():
                         slum_rim_obj.update(rim_data = rim_data, modified_on = last_modified_at)
                         print("Slum_data Updated for slum : ", slum_name)
@@ -1440,7 +1457,7 @@ class avni_sync():
                 print(g['audit']['Last modified at'])
                 print(g['audit']['Created at'])
                 
-            update_cnt, rim_add_flag = self.update_rim_data(get_text)
+            update_cnt, rim_add_flag = self.update_rim_data(get_text,slum_id)
             return  True, update_cnt, rim_add_flag
         else:
             return False, 0, False

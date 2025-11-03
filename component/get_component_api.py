@@ -1,15 +1,11 @@
-from turtle import delay
 from . import views
 from graphs.models import APICache
 from django.http import JsonResponse
 from django.utils import timezone
-from datetime import time, timedelta
+from datetime import timedelta
 import threading
 import json
 import hashlib
-from django.http import StreamingHttpResponse
-import time  # standard Python time module, not datetime.time
-
 
 TTL = timedelta(hours=1)  # Cache expiration time
 
@@ -44,36 +40,26 @@ def compute_and_update_cache(request, slum_id, req_hash):
         }
     )
 
-def stream_json_in_chunks(data, chunk_size=1):
-    keys = list(data.keys())
-    total_keys = len(keys)
-    print("Total keys to stream:", total_keys)
-    print("Chunk size:", chunk_size)
-    for i in range(0, total_keys, chunk_size):
-        chunk_keys = keys[i:i+chunk_size]
-        chunk_data = {k: data[k] for k in chunk_keys}   
-        yield json.dumps({
-            "keys": chunk_data,
-            "chunk_index": (i // chunk_size) + 1,
-            "total_chunks": (total_keys // chunk_size) + (1 if total_keys % chunk_size > 0 else 0)
-        }) + "\n"
 
 def get_component_api(request, slum_id):
     """
     Wrapper view with stale-while-revalidate caching
     """
     req_hash = get_request_hash(request, slum_id)
+    flag = request.headers.get("Force-Refresh-Flag", "0")
+
 
     try:
         cache = APICache.objects.get(request_hash=req_hash)
         print("Cache hit")
-        data = cache.response
         # If cache is expired, start background refresh
-        if cache.is_expired():
-            
+        if cache.is_expired() or flag == '1':
             # Start background refresh
             print("Cache expired, refreshing in background...")
             threading.Thread(target=compute_and_update_cache, args=(request, slum_id, req_hash)).start()
+
+        # Return cached response immediately (even if stale)
+        return JsonResponse(cache.response)
 
     except APICache.DoesNotExist:
         print("Cache miss, computing response...")
@@ -89,6 +75,4 @@ def get_component_api(request, slum_id):
             response=data,
             expires_at=timezone.now() + TTL
         )
-    # print("Sending response")
-    # print(data)
-    return StreamingHttpResponse(stream_json_in_chunks(data, chunk_size=4), content_type="application/json")
+        return JsonResponse(data)
