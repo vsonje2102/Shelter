@@ -90,8 +90,6 @@ class KMLParser(object):
             Component.objects.bulk_create(create_bulk)
 
     def other_components(self):
-        ''' Iterate through each document folder and process the data
-        '''
         folders=[]
         kml_folder={}
         try:
@@ -99,7 +97,6 @@ class KMLParser(object):
         except:
             folders = self.root.Folder.Document.Folder
         metadata_component = Metadata.objects.filter(type='C').values_list('code', flat=True)
-
         if self.delete_flag:
             self.object_type.components.all().delete()
         for folder in folders:

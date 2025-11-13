@@ -175,7 +175,7 @@ def score_cards(ele):
         Sum('toilet_seat_to_person_ratio'),Sum('individual_toilet_coverage'),Sum('fun_male_seats'),Sum('fun_fmale_seats'),
         Sum('toilet_men_women_seats_ratio'),Sum('ctb_coverage'),Sum('get_shops_count'), Sum('drains_coverage'), 
         Sum('shared_group_toilet_coverage'), Sum('other_services_toilet_coverage'), Sum('toilet_data_available'), Sum('water_data_available'), Sum('waste_data_available'))
-
+    print(aggrgated_data)
     #drainage_card data
     slum_ids_hh = ele.filter( household_count__gt = 0.0).values_list('slum_id',flat=True)
     total_drain_count = 0

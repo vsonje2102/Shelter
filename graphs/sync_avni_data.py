@@ -190,6 +190,7 @@ class avni_sync():
         send_request = requests.get(self.base_url + 'api/subject/' + subject_id,
                                     headers={'AUTH-TOKEN': self.get_cognito_token()})
         self.get_HH_data = json.loads(send_request.text)
+        print(self.get_HH_data)
         a_city = self.city = self.get_HH_data['location']['City']
         b_slum = self.slum = self.get_HH_data['location']['Slum']
         c_HH = self.HH = str(int(self.get_HH_data['observations']['First name']))

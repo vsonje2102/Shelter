@@ -463,3 +463,71 @@ class avni_sync():
         conn.commit()
         conn.close()
         print(final_list)
+        
+    # --- Get Household Details ---
+    # This it to be used when you need to fetch details of singel household using subject id
+    def get_household_details(self, subject_id):
+        send_request = requests.get(self.base_url + 'api/subject/' + subject_id,
+                                    headers={'AUTH-TOKEN': self.get_cognito_token()})
+        self.get_HH_data = json.loads(send_request.text)
+        print(self.get_HH_data)
+        a_city = self.city = self.get_HH_data['location']['City']
+        b_slum = self.slum = self.get_HH_data['location']['Slum']
+        c_HH = self.HH = str(int(self.get_HH_data['observations']['First name']))
+        d_date = self.SubmissionDate = self.get_HH_data['audit']['Last modified at']
+        return self.get_HH_data
+    
+    # --- Update Household Details ---
+    # This it to be used when you need to update details of singel household using subject id
+    def update_household_details(self, subject_id):
+        subject_id = "f6fc3958-b2f3-4295-bf4d-3175fac35e52"
+        Request = requests.get(self.base_url + 'api/subject/' + subject_id ,headers={'AUTH-TOKEN': self.get_cognito_token()})
+        # print(Request)
+        if Request.status_code == 200:
+            data = json.loads(Request.text)
+            # print(data)
+            # demo = json.dumps(data)
+            # print("Data fetched from AVNI")
+            # print(demo)
+            ''' For every subject we have to provide the address. You can get the address from location data i the response data.'''
+            location_cred = data['location']
+            address = ''
+            if 'Admin' in location_cred and 'Ward' in location_cred:
+                address += location_cred['City'] + ', ' + location_cred['Admin'] + ', ' + location_cred['Ward'] + ', ' + location_cred['Slum']
+            elif 'Admin' in location_cred:
+                address += location_cred['City'] + ', ' + location_cred['Admin']  + ', ' + location_cred['Slum']
+            else:
+                address += location_cred['City'] + ', ' + location_cred['Ward']  + ', ' + location_cred['Slum']
+
+            del data['location']
+            data['Address'] = address # r['address']
+            
+            data["First name"] = data['observations']["First name"]
+            del data['observations']["First name"]
+
+            if "Last name" in data['observations']:
+                del data['observations']["Last name"]
+            
+            # END
+            # # Add/Update other fields if required
+            data['observations']['Number of household members'] = 4
+            ##
+            payload = json.dumps(data)
+            # print(payload)
+
+            url = self.base_url +  'api/subject/' + subject_id
+            headers={'auth-token': self.get_cognito_token(),
+                    'Content-Type': 'application/json',
+                    }
+
+            response = requests.request("PUT", url, headers = headers, data = payload)
+            if response.status_code != 200:
+                print("Record", subject_id, "Update Failed")
+                print(response.text)
+            else:
+                print("Record", subject_id, "Updated Successfully")
+        else:
+            print("Failed to fetch data")
+            payload = None
+        
+        return payload

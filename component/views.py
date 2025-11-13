@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.contrib import messages
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import user_passes_test, permission_required
@@ -33,30 +34,84 @@ def get_request_hash(params: dict) -> str:
 
 @staff_member_required
 @permission_required('component.can_upload_KML', raise_exception=True)
+
 def kml_upload(request):
-    print( request.user.has_perm('component.can_upload_KML'))
-    print("kml upload   ")
     context_data = {}
-    if request.method == 'POST':
-        form = KMLUpload(request.POST or None,request.FILES)
-        if form.is_valid():
-            docFile = request.FILES['kml_file'].read()
-            data = form.cleaned_data['slum_name']
-            if form.cleaned_data['level'] == 'City':
-                data = form.cleaned_data['City']
-            objKML = KMLParser(docFile, data, form.cleaned_data['delete_flag'])
-            try:
-                parsed_data = objKML.other_components()
-                context_data['parsed'] = [k for k,v in parsed_data.items() if v==True]
-                context_data['unparsed'] = [k for k,v in parsed_data.items() if v==False]
-                messages.success(request,'KML uploaded successfully')
-            except Exception as e:
-                messages.error(request, 'Some error occurred while parsing. KML file is not in the required format ('+str(e)+')')
-    else:
+    # If GET and JS asked for component list, return JSON list for refresh button
+    if request.method == 'GET':
+        # If JS requests JSON list explicitly, return it
+        if request.GET.get('component_list') == '1' or request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            component_list = list(Metadata.objects.filter(type='C').values_list('code', flat=True))
+            return JsonResponse({'component_list': component_list})
+        # otherwise fall through to render template as normal
         form = KMLUpload()
+        metadata_component = Metadata.objects.filter(type='C').values_list('code', flat=True)
+        context_data['component'] = metadata_component
+        context_data['form'] = form
+        return render(request, 'kml_upload.html', context_data)
+
+    # POST handling
+    form = KMLUpload(request.POST or None, request.FILES or None)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+
+    if request.method == 'POST':
+        if form.is_valid():
+            # ensure file present
+            if 'kml_file' not in request.FILES:
+                err = 'No KML file uploaded.'
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err})
+                messages.error(request, err)
+            else:
+                try:
+                    docFile = request.FILES['kml_file'].read()
+                    data = form.cleaned_data.get('slum_name')
+                    if form.cleaned_data.get('level') == 'City':
+                        data = form.cleaned_data.get('City')
+
+                    objKML = KMLParser(docFile, data, form.cleaned_data.get('delete_flag'))
+                    parsed_data = objKML.other_components()
+                    parsed = [k for k, v in parsed_data.items() if v is True]
+                    unparsed = [k for k, v in parsed_data.items() if v is False]
+
+                    # --- OPTIONAL: persist parsed components into Metadata ---
+                    # Uncomment or keep as needed. This ensures components appear on future page loads.
+                    for comp in parsed:
+                        Metadata.objects.get_or_create(code=comp, defaults={'type': 'C'})
+
+                    # If AJAX request, return JSON immediately (no page refresh)
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'KML parsed successfully.',
+                            'component_list': parsed,   # or fetch DB list if you prefer
+                            'parsed': parsed,
+                            'unparsed': unparsed,
+                        })
+
+                    # Non-AJAX: show message and continue to render (or redirect)
+                    messages.success(request, 'KML uploaded successfully')
+
+                except Exception as e:
+                    err_msg = 'Some error occurred while parsing. KML file is not in the required format (' + str(e) + ')'
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err_msg})
+                    messages.error(request, err_msg)
+        else:
+            # Form invalid
+            if is_ajax:
+                # return readable form errors
+                errors = form.errors.get_json_data()
+                return JsonResponse({'success': False, 'error': errors})
+            messages.error(request, 'Form is invalid. Please check the inputs.')
+
+    # final render for non-AJAX POST (or after messages)
     metadata_component = Metadata.objects.filter(type='C').values_list('code', flat=True)
     context_data['component'] = metadata_component
     context_data['form'] = form
+    # If you want to show parsed/unparsed immediately in non-AJAX flow, include them:
+    context_data['parsed'] = parsed 
+    context_data['unparsed'] = unparsed
     return render(request, 'kml_upload.html', context_data)
 
 #@user_passes_test(lambda u: u.is_superuser)
@@ -349,3 +404,33 @@ def get_kobo_drainage_report_data(request, slum_id):
          output['electoral_ward'] = slum[0].electoral_ward.name
          output['slum_name'] = slum[0].name
      return HttpResponse(json.dumps(output),content_type='application/json')
+
+def get_component_list(request):
+    """Get unique component names from Metadata for a given object_id, with count numbers."""
+    object_id = request.GET.get('object_id')
+    components = Component.objects.filter(object_id=object_id).values_list('metadata__name', flat=True)
+    unique_names = sorted(set(components))
+    data = [{'id': i + 1, 'name': name} for i, name in enumerate(unique_names)]
+    return JsonResponse(data, safe=False)  
+
+def delete_component(request):
+    
+    if request.method == "POST":  # or "DELETE"
+        object_id = request.POST.get("object_id")
+        comp_name = request.POST.get("comp_name")
+        print(object_id , comp_name)
+        if not object_id or not comp_name:
+            return JsonResponse({"success": False, "message": "Missing object_id or comp_name"}, status=400)
+
+        # Try to delete the component
+        try:
+            comp = Component.objects.filter(object_id=object_id, metadata__name=comp_name)
+            print("Component to be deleted:", comp)
+            comp.delete()
+            return JsonResponse({"success": True, "message": f'Component "{comp_name}" deleted successfully'})
+        except Component.DoesNotExist:
+            return JsonResponse({"success": False, "message": "Component not found"}, status=404)
+        except Exception as e:
+            return JsonResponse({"success": False, "message": str(e)}, status=500)
+    else:
+        return JsonResponse({"success": False, "message": "Invalid request method"}, status=405)

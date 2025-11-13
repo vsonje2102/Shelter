@@ -57,6 +57,7 @@ INSTALLED_APPS = (
      'rest_framework.authtoken',
      'rest_auth',
      'drf_dynamic_fields',
+     'widget_tweaks',
 )
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
