@@ -53,6 +53,7 @@ INSTALLED_APPS = (
      'colorfield',
      'mastersheet',
      'graphs',
+     'helpers',
      'rest_framework',
      'rest_framework.authtoken',
      'rest_auth',

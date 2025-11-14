@@ -3,7 +3,7 @@
 {% block title %} {{ site_title|default:_('Shelter site admin') }}{% endblock %}
 
 {% block branding %}
-<a href="/home"><img src="/static/images/shelter.png" height="60"  widht = "150" style="padding:5px;"/></a>
+<a href="/home"><img src="/static/images/shelter.png" height="60"  width="150" /></a>
 {% endblock %}
 
 {% block menubar %}
@@ -65,6 +65,11 @@
             <li><a href="/admin/report/">Factsheet Report</a></li>
             <li><a href="/admin/vulnerabilityReport/" target="__blank">Vulnerability Report</a></li>
             <li><a href="/graphs/factsheet_data">City Wise Factsheet Data</a></li>
+            {%endif%}
+            {% if perms.master.can_generate_reports %}
+            <li role="separator" class="divider"></li>
+            <li class="dropdown-header">Additional Tools</li>
+            <li><a href="/helpers/digipin_generate/">Generate Digipin</a></li>
             {%endif%}
         </ul>
     </li>
