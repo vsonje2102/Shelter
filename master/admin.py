@@ -79,15 +79,10 @@ class UploadKMLBase(admin.ModelAdmin):
         return self.process_action(request, city_id, "Slum")
 
     def process_action(self, request, city_id, action_title):
-        print("Processing KML upload for action: ", action_title)
-        print("City ID: ", city_id)
-        print("Request",request)
         response = {"status":True, 'message':""}
         if request.method == "POST":
             docFile = request.FILES['file'].read()
             chk_delete = request.POST['chk_delete']
-            print("chk_delete:", chk_delete)
-            print("docFile:", docFile)
             try:
                 kml_level_parser = KMLLevelParser(docFile, city_id, chk_delete, action_title)
                 cnt = kml_level_parser.parse_kml()
