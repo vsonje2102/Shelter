@@ -26,8 +26,8 @@ from master.views import index, SurveyListView, SurveyCreateView, \
     vulnerabilityreport,formList,slummapdisplay,slummap,citymapdisplay, \
     modelmapdisplay, drainageinsert, sluminformation, drainagedisplay , \
     drainageedit, cityList, drainagereportgenerate, modelList, \
-    familyrportgenerate, user_login, get_translations
-from django.contrib.auth import views as auth_views
+    familyrportgenerate, user_login, get_translations 
+from django.contrib.auth import views as auth_viewss
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -74,6 +74,5 @@ urlpatterns = [
     #url(r'^reset-password/confirm/(?P<uidb64>[0-9A-Za-z]+)-(?P<token>.+)/$',
     #    auth_views.password_reset_confirm, name='password_reset_confirm'),
     #url(r'^reset/done/$', auth_views.password_reset_complete, name='password_reset_complete'),
-
 ]
     

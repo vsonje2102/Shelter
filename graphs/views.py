@@ -4,11 +4,12 @@ from django.shortcuts import render
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404
-from django.http import HttpResponse 
+from django.http import HttpResponse, JsonResponse 
 from itertools import groupby
 from django.db.models import Avg,Sum,Count
 from collections import OrderedDict
 from graphs.models import *
+from graphs.sync_avni_data import avni_sync
 from master.models import *
 from graphs.export_data import *
 import json
@@ -25,6 +26,7 @@ from mastersheet.models import *
 import pandas as pd
 from django.db.models.functions import Cast
 from django.db.models import CharField
+from datetime import datetime
 
 
 
@@ -173,7 +175,7 @@ def score_cards(ele):
         Sum('toilet_seat_to_person_ratio'),Sum('individual_toilet_coverage'),Sum('fun_male_seats'),Sum('fun_fmale_seats'),
         Sum('toilet_men_women_seats_ratio'),Sum('ctb_coverage'),Sum('get_shops_count'), Sum('drains_coverage'), 
         Sum('shared_group_toilet_coverage'), Sum('other_services_toilet_coverage'), Sum('toilet_data_available'), Sum('water_data_available'), Sum('waste_data_available'))
-
+    print(aggrgated_data)
     #drainage_card data
     slum_ids_hh = ele.filter( household_count__gt = 0.0).values_list('slum_id',flat=True)
     total_drain_count = 0
@@ -883,3 +885,8 @@ def MemberDataView(request):
         return HttpResponse(json.dumps(member_data),content_type='application/json')
     else:
         return HttpResponse(json.dumps(data),content_type='application/json')
+
+def get_cognito_token_view(request):
+    avni = avni_sync()
+    token = avni.get_cognito_token()
+    return JsonResponse({"token": token})

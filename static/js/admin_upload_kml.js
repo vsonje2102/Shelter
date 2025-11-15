@@ -85,11 +85,11 @@ $(document).ready(function(){
         var formData = new FormData(input);
         formData.append('chk_delete',$("input[name=chkdelete]").is(":checked"));
         if(typeof input[1].files[0] == 'undefined' ){
-            alert("No file selected. Please select a file.");
+            alert("No file selected. Please select a file. we dont want to select folder");
         }
         else{
             var fname = input[1].files[0].name;
-            var re = /(\.kml)$/i;
+            var re = /(\.kml)$/i;``
 
             if(!re.exec(fname)){
                 alert("File extension not supported!");

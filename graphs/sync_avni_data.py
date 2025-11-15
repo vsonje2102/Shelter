@@ -38,12 +38,14 @@ class avni_sync():
         cognito_details = json.loads(cognito_details.text)
         self.poolId = cognito_details['poolId']
         self.clientId = cognito_details['clientId']
-
+    
+    
     def get_cognito_token(self):
         self.get_cognito_details()
         command_data = subprocess.Popen(['node', 'graphs/avni/token.js', self.poolId, self.clientId, settings.AVNI_USERNAME, settings.AVNI_PASSWORD], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = command_data.communicate()
         self.token = stdout.decode("utf-8").replace('\n', '')
+        print(f"auth token = \"{self.token}\"")
         return self.token
 
     def get_city_slum_ids(self, slum_name):
@@ -52,9 +54,9 @@ class avni_sync():
 
     def lastModifiedDateTime(self):
         last_submission_date = HouseholdData.objects.latest('submission_date')
-        # latest_date = last_submission_date.submission_date + timedelta(days=1)
+        latest_date = last_submission_date.submission_date + timedelta(days=1)
         today = datetime.today() + timedelta(days= -1)
-        latest_date = today.strftime('%Y-%m-%dT00:00:00.000Z')
+        latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
         iso = "2024-07-05T05:40:00.000Z"
         return(latest_date)
 
@@ -188,6 +190,7 @@ class avni_sync():
         send_request = requests.get(self.base_url + 'api/subject/' + subject_id,
                                     headers={'AUTH-TOKEN': self.get_cognito_token()})
         self.get_HH_data = json.loads(send_request.text)
+        print(self.get_HH_data)
         a_city = self.city = self.get_HH_data['location']['City']
         b_slum = self.slum = self.get_HH_data['location']['Slum']
         c_HH = self.HH = str(int(self.get_HH_data['observations']['First name']))
@@ -448,6 +451,7 @@ class avni_sync():
 
     def SaveDailyReportingdata(self):  # checked
         latest_date = self.lastModifiedDateTime()
+        print(latest_date)
         programEncounters_path = 'api/programEncounters?lastModifiedDateTime=' + latest_date + '&encounterType=Daily Reporting'
         result = requests.get(self.base_url + programEncounters_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
         get_page_count = json.loads(result.text)['totalPages']
@@ -456,6 +460,7 @@ class avni_sync():
 
             data = json.loads(send_request.text)['content']
             for j in data:
+                print(data)
                 if j['Voided'] == False and j['observations'] != {}:
                     a, slum_id, HH, d = self.get_household_details(j['Subject ID'])
                     self.DailyReportingData(j['observations'], slum_id, HH)
@@ -696,7 +701,7 @@ class avni_sync():
                                             headers={'AUTH-TOKEN': self.get_cognito_token()})
                 data = json.loads(send_request.text)['content']
                 for j in data:
-                    if not j['Voided'] and j['observations'] != {}:
+                    if not j['Voided'] and j['observations'] != {}: 
                         water_data = j['observations']
                         if 'Type of water connection ?' in water_data:
                             water_data['group_el9cl08/Type_of_water_connection'] = water_data[
@@ -1045,9 +1050,8 @@ class avni_sync():
 
     # methods for sync encounter data through json file.
 
-    def sync_sanitation_data(self ,file_path):
-        # with open('/home/shelter/Desktop/Json_files_for_upload/sanitation_data_10_03_2025.json', 'r') as f:
-        with open(file_path, 'r') as f:
+    def sync_sanitation_data(self):
+        with open('/home/shelter/Desktop/Json_files_for_upload/sanitation_data_10_03_2025.json', 'r') as f:
             count = 1
             data = json.load(f)
             for sanitation in data:
@@ -1096,9 +1100,8 @@ class avni_sync():
                 except Exception as e:
                     print(e, hh_number, "sanitation_uuid = " + san_uuid)
 
-    def sync_water_data(self , file_path):
-        # with open('/home/ubuntu/kuldeep/water_data_08_10_2024.json', 'r') as f:
-        with open(file_path, 'r') as f:
+    def sync_water_data(self):
+        with open('/home/ubuntu/kuldeep/water_data_08_10_2024.json', 'r') as f:
             count = 1
             data = json.load(f)
             for water in data:
@@ -1138,9 +1141,8 @@ class avni_sync():
 
 
 
-    def sync_waste_data(self,file_path):
-        # with open('/home/ubuntu/kuldeep/waste_data_08_10_2024.json', 'r') as f:
-        with open(file_path, 'r') as f:
+    def sync_waste_data(self):
+        with open('/home/ubuntu/kuldeep/waste_data_08_10_2024.json', 'r') as f:
             count = 1
             data = json.load(f)
             for waste in data:
@@ -1298,9 +1300,8 @@ class avni_sync():
         return electricity_data, submission_date
         
                     
-    def sync_Electricity_data(self,file_path):
-        #with open('/home/ubuntu/kuldeep/electricity_data_08_10_2024.json', 'r') as f:
-        with open(file_path, 'r') as f:
+    def sync_Electricity_data(self):
+        with open('/home/ubuntu/kuldeep/electricity_data_08_10_2024.json', 'r') as f:
             count = 1
             data = json.load(f)
             for electricity_obj in data:
@@ -1375,14 +1376,24 @@ class avni_sync():
                     print(e)
         return Update_count
 
-
-    def update_rim_data(self, get_text):
+    def update_rim_data(self, get_text, slum_id):
         section_names = ['General' , 'Water', 'Waste', 'Drainage', 'Gutter', 'Road']
         Update_count = 0
         for data in get_text:
+            print("Processing data:",data)
             if not data['Voided']:
                 slum_name = data['location']['Slum']
-                last_modified_at = dateparser.parse(data['audit']['Last modified at'])
+                last_modified_at_raw = data['audit']['Last modified at']
+                try:
+                    last_modified_at = dateparser.parse(last_modified_at_raw)
+                except Exception:
+                    # Fallback for your buggy local setup
+                    last_modified_at = datetime.strptime(last_modified_at_raw, "%Y-%m-%dT%H:%M:%S.%fZ")
+                if last_modified_at:
+                    print("Last modified at parsed:", last_modified_at)
+                else:
+                    print("Last modified at not parsed.")
+                    exit("Failed to parse last modified at date.")
                 with open('graphs/rim_questions_mapping.json') as datafile:
                     rim_data = {}
                     rim_questions = json.load(datafile)
@@ -1390,8 +1401,17 @@ class avni_sync():
                         section_map_data = self.map_rim_data(data['observations'], rim_questions[section])
                         rim_data[section] = section_map_data
                     rim_data['Toilet'] = []
-                    slum_id, city_id = self.get_city_slum_ids(slum_name)
+                    # slum_id, city_id = self.get_city_slum_ids(slum_name)
+                    slum_id, city_id = Slum.objects.filter(id=slum_id).values_list(
+                        "id",
+                        "electoral_ward__administrative_ward__city__id"
+                    ).first()
                     slum_rim_obj = SlumData.objects.filter(slum_id = slum_id)
+                    print("Slum rim object:", slum_rim_obj)
+                    print("Rim data to be updated:", rim_data)
+                    print("Last modified at:", last_modified_at)
+                    print("Slum ID:", slum_id)
+                    print("Slum name:", slum_name)
                     if slum_rim_obj.exists():
                         slum_rim_obj.update(rim_data = rim_data, modified_on = last_modified_at)
                         print("Slum_data Updated for slum : ", slum_name)
@@ -1424,12 +1444,21 @@ class avni_sync():
     def sync_rim_data(self, slum_id):
         """ Using this method we fetch RIM data slum wise from avni."""
         avni_uuid = self.avni_uuid_details(slum_id)
+        print("Slum avni uuid : ", avni_uuid)
         if avni_uuid:
-            latest_date = '2021-10-31T01:30:00.000Z'   # This is only for Slum-RIM data
+            #atest_date = '2021-10-31T01:30:00.000Z'   # This is only for Slum-RIM data
+            latest_date = '2025-07-24T01:30:00.000Z'
             slumRim_path = 'api/subjects?lastModifiedDateTime=' + latest_date + '&subjectType=' + 'Slum-RIM%20Registration&locationIds=' + avni_uuid
             result = requests.get(self.base_url + slumRim_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
+            print(result)
             get_text = json.loads(result.text)['content']
-            update_cnt, rim_add_flag = self.update_rim_data(get_text)
+            for g in get_text:
+                print(g['location']['Slum'])
+                print(g['Registration date'])
+                print(g['audit']['Last modified at'])
+                print(g['audit']['Created at'])
+                
+            update_cnt, rim_add_flag = self.update_rim_data(get_text,slum_id)
             return  True, update_cnt, rim_add_flag
         else:
             return False, 0, False

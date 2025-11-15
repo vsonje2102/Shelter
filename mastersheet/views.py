@@ -639,7 +639,7 @@ def handle_uploaded_file(f, response, slum_code):
                     rhs_instence = HouseholdData.objects.filter(id = int(i), rhs_data__isnull = False)
                     if rhs_instence.count() > 0:
                         rhs_data = rhs_instence[0].rhs_data
-                        drainage_data = {'HH_can_connect_to_Drainage' : df_rhs.loc[int(i), 'HH can connect to Drainage line']}
+                        drainage_data = {'HH_can_connect_to_Drainage' : df_rhs.loc[int(i), ' ']}
                         rhs_data.update(drainage_data)
                         rhs_instence.update(rhs_data = rhs_data)
                         response.append(("updated RHS", str(df_rhs.loc[int(i), 'Household number'])))

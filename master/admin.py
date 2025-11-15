@@ -79,10 +79,15 @@ class UploadKMLBase(admin.ModelAdmin):
         return self.process_action(request, city_id, "Slum")
 
     def process_action(self, request, city_id, action_title):
+        print("Processing KML upload for action: ", action_title)
+        print("City ID: ", city_id)
+        print("Request",request)
         response = {"status":True, 'message':""}
         if request.method == "POST":
             docFile = request.FILES['file'].read()
             chk_delete = request.POST['chk_delete']
+            print("chk_delete:", chk_delete)
+            print("docFile:", docFile)
             try:
                 kml_level_parser = KMLLevelParser(docFile, city_id, chk_delete, action_title)
                 cnt = kml_level_parser.parse_kml()
@@ -226,13 +231,29 @@ class SlumDetailAdmin(BaseModelAdmin):
     status_of_slum.short_description = "Change status(Active/Inactive) of slum(s)"
 
     def electoral_ward(self, obj):
-        return obj.electoral_ward.name
+        try:
+            return obj.electoral_ward.name
+        except AttributeError:
+            return "-"
 
+    # def administrative_ward(self, obj):
+    #     return obj.electoral_ward.administrative_ward.name
     def administrative_ward(self, obj):
-        return obj.electoral_ward.administrative_ward.name
+        try:
+            return obj.electoral_ward.administrative_ward.name
+        except AttributeError:
+            return "-"
 
+    # def city_name(self, obj):
+    #     return obj.electoral_ward.administrative_ward.city.name.city_name
+    
     def city_name(self, obj):
-        return obj.electoral_ward.administrative_ward.city.name.city_name
+        try:
+            return obj.electoral_ward.administrative_ward.city.name.city_name
+        except AttributeError:
+            return "-"
+
+
 
 admin.site.register(Slum, SlumDetailAdmin)
 

@@ -652,6 +652,7 @@ div.breadcrumbs {
     font-size: 14px;
     color: #c4dce8;
     text-align: left;
+    width: 100%;
 }
 
 div.breadcrumbs a {
