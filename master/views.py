@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis import geos
 from django.views.decorators.clickjacking import xframe_options_exempt
+from requests import request
 
 from master.models import Survey, CityReference, Rapid_Slum_Appraisal, \
 						  Slum, AdministrativeWard, ElectoralWard, City, \
@@ -271,7 +272,7 @@ def vulnerabilityreport(request):
 def slummap(request):
 	template = loader.get_template('slummapdisplay.html')
 	context = {"request":request}
-	return HttpResponse(template.render(context))
+	return render(request, 'slummapdisplay.html', context)
 
 @csrf_exempt
 @access_right
@@ -597,7 +598,8 @@ def familyrportgenerate(request):
 def city_wise_map_base64(request, key, slumname = None):
 	return city_wise_map(request, key, slumname, False)
 
-def city_wise_map(request, key, slumname = None, flag=True):
+
+def city_wise_map(request, key, slumname=None, flag=True):
 	if flag:
 		city = key.split('::')[1]
 		city = get_object_or_404(City, name__city_name=city)
@@ -606,18 +608,16 @@ def city_wise_map(request, key, slumname = None, flag=True):
 		city = cipher.decrypt(key.split('::')[1])
 		city = City.objects.get(id=city)
 
-	template = loader.get_template('city_wise_map.html')
-	data={}
-	if slumname :
-		data['slum_name' ] = slumname
+	context = {}
+	if slumname:
+		context['slum_name'] = slumname
 	if city:
-		data['city_id'] = city.id
-		data['city_name'] = city.name.city_name
+		context['city_id'] = city.id
+		context['city_name'] = city.name.city_name
 	else:
-		data['error'] = "URL incorrect"
-	data["request"] = request
-	context = data
-	return HttpResponse(template.render(context))
+		context['error'] = "URL incorrect"
+
+	return render(request, 'city_wise_map.html', context)
 
 def login_success(request):
 	return_to = ""

@@ -1,6 +1,6 @@
 
 python3 manage.py shell <<ORM
-import graphs.sync_avni_data_cp_strucuture as sync_module
+import graphs.sync_avni_data as sync_module
 from importlib import reload
 reload(sync_module)
 a = sync_module.avni_sync()
@@ -15,4 +15,4 @@ a.SaveRhsData("Household")  # now it will work
 
 
 ORM
-~     
+   
