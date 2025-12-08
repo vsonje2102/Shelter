@@ -55,9 +55,11 @@ class avni_sync():
         self.get_cognito_details()
         command_data = subprocess.Popen(['node', 'graphs/avni/token.js',self.poolId, self.clientId, settings.AVNI_USERNAME, settings.AVNI_PASSWORD], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = command_data.communicate()
-        self.token = stdout.decode("utf-8").replace('\n','')
+        #self.token = stdout.decode("utf-8").replace('\n','')
+        decoded = stdout.decode("utf-8")
+        lines = [line.strip() for line in decoded.splitlines() if line.strip()]
+        self.token = lines[-1]
         print(self.token)
-        self.token = self.token[352:]
         self.token_expiry = self.get_token_expiry(self.token)
         return self.token
     
@@ -542,19 +544,19 @@ class avni_sync():
             ##
             payload = json.dumps(data)
             print(payload)
-            url = self.base_url +  'api/subject/' + subject_id
-            headers={'auth-token': self.get_cognito_token(),
-                    'Content-Type': 'application/json',
-                    }
-            print(headers['auth-token'])
-            response = requests.request("PUT", url, headers = headers, data = payload)
-            if response.status_code != 200:
-                print("Record", subject_id, "Update Failed")
-                print(response.text)
-            else:
-                print("Record", subject_id, "Updated Successfully")
+            # url = self.base_url +  'api/subject/' + subject_id
+            # headers={'auth-token': self.get_cognito_token(),
+            #         'Content-Type': 'application/json',
+            #         }
+            # print(headers['auth-token'])
+            # response = requests.request("PUT", url, headers = headers, data = payload)
+            # if response.status_code != 200:
+            #     print("Record", subject_id, "Update Failed")
+            #     print(response.text)
+            # else:
+            #     print("Record", subject_id, "Updated Successfully")
         else:
             print("Failed to fetch data")
             payload = None
         
-        return payload
+        return payload 

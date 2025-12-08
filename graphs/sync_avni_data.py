@@ -43,8 +43,9 @@ class avni_sync():
         self.get_cognito_details()
         command_data = subprocess.Popen(['node', 'graphs/avni/token.js', self.poolId, self.clientId, settings.AVNI_USERNAME, settings.AVNI_PASSWORD], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = command_data.communicate()
-        self.token = stdout.decode("utf-8").replace('\n', '')
-        self.token = self.token[353:]
+        decoded = stdout.decode("utf-8")
+        lines = [line.strip() for line in decoded.splitlines() if line.strip()]
+        self.token = lines[-1]        
         return self.token
 
     def get_city_slum_ids(self, slum_name):
@@ -199,16 +200,21 @@ class avni_sync():
 
     # This function is used to create rhs data url when we sync data page wise.
     def create_registrationdata_url(self,subject_type):  # checked
-        latest_date = self.lastModifiedDateTime()
-        print(latest_date)
+        names = ["Banthara Town", "Mohanlalganj City"]
+        if subject_type == "Structure":
+            obj = HouseholdData.objects.filter(city__name__city_name__in=names).order_by('-submission_date').first()
+        elif subject_type == "Household":
+            obj = HouseholdData.objects.exclude(city__name__city_name__in=names).order_by('-submission_date').first()
+
+        latest_date = obj.submission_date + timedelta(days=1)
+        latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
+
         household_path = 'api/subjects?lastModifiedDateTime=' + latest_date + '&subjectType=' + subject_type
-        print(self.base_url + household_path)
         result = requests.get(self.base_url + household_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
-        print(result.status_code)
-        print(result.text)
         get_text = json.loads(result.text)['content']
         pages = json.loads(result.text)['totalPages']
         return pages, household_path
+
 
     def registrtation_data(self, HH_data):  # checked
         final_rhs_data = {}

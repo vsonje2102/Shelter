@@ -154,7 +154,6 @@ def rimdisplay(request):
 
 @csrf_exempt
 def rimedit(request,Rapid_Slum_Appraisal_id):
-	"""Update Rapid Slum Appraisal Record"""
 	if request.method == 'POST':
 		R = Rapid_Slum_Appraisal.objects.get(pk=Rapid_Slum_Appraisal_id)
 		form = Rapid_Slum_AppraisalForm(request.POST or None,request.FILES,instance=R)
@@ -163,7 +162,6 @@ def rimedit(request,Rapid_Slum_Appraisal_id):
 			return HttpResponseRedirect('/admin/sluminformation/rim/display')
 	elif request.method=="GET":
 		R = Rapid_Slum_Appraisal.objects.get(pk=Rapid_Slum_Appraisal_id)
-
 		# Step 2: changing urls of avni images.
 		fields_to_modify= ['toilet_image_bottomdown1', 'toilet_image_bottomdown2', 'water_image_bottomdown1', 'water_image_bottomdown2', 'waste_management_image_bottomdown1', 'waste_management_image_bottomdown2', 'drainage_image_bottomdown1', 'drainage_image_bottomdown2', 'gutter_image_bottomdown1', 'gutter_image_bottomdown2', 'roads_image_bottomdown1', 'road_image_bottomdown2', 'general_image_bottomdown1', 'general_image_bottomdown2']
 		a = avni_sync()
