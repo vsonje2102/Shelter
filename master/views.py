@@ -162,16 +162,21 @@ def rimedit(request,Rapid_Slum_Appraisal_id):
 			return HttpResponseRedirect('/admin/sluminformation/rim/display')
 	elif request.method=="GET":
 		R = Rapid_Slum_Appraisal.objects.get(pk=Rapid_Slum_Appraisal_id)
-
-		# Step 2: changing urls of avni images.
-		fields_to_modify= ['toilet_image_bottomdown1', 'toilet_image_bottomdown2', 'water_image_bottomdown1', 'water_image_bottomdown2', 'waste_management_image_bottomdown1', 'waste_management_image_bottomdown2', 'drainage_image_bottomdown1', 'drainage_image_bottomdown2', 'gutter_image_bottomdown1', 'gutter_image_bottomdown2', 'roads_image_bottomdown1', 'road_image_bottomdown2', 'general_image_bottomdown1', 'general_image_bottomdown2']
-		a = avni_sync()
-		for field in fields_to_modify:
-			value = getattr(R, field)  # Get the field's current value
-			# Modify each field based on type or other logic, only for display
-			if "https://s3.ap-south-1.amazonaws.com/" in str(value):
-				new_link = a.get_image(str(value))
-				setattr(R, field, new_link)
+## Commented the signed URL logic for now because the API sometimes fails to generate signed URLs
+## due to Cognito token issues (Unauthorized 401). The token we receive occasionally contains an
+## extra appended segment, causing intermittent auth failures — sometimes it works, sometimes it fails.
+## We need to slice/clean the Cognito token properly before using it. Until that fix is implemented,
+## the signing call is disabled to avoid breaking the image URL.
+#
+#		# Step 2: changing urls of avni images.
+#		fields_to_modify= ['toilet_image_bottomdown1', 'toilet_image_bottomdown2', 'water_image_bottomdown1', 'water_image_bottomdown2', 'waste_management_image_bottomdown1', 'waste_management_image_bottomdown2', 'drainage_image_bottomdown1', 'drainage_image_bottomdown2', 'gutter_image_bottomdown1', 'gutter_image_bottomdown2', 'roads_image_bottomdown1', 'road_image_bottomdown2', 'general_image_bottomdown1', 'general_image_bottomdown2']
+#		a = avni_sync()
+#		for field in fields_to_modify:
+#			value = getattr(R, field)  # Get the field's current value
+#			# Modify each field based on type or other logic, only for display
+#			if "https://s3.ap-south-1.amazonaws.com/" in str(value):
+#				new_link = a.get_image(str(value))
+#				setattr(R, field, new_link)
 		form = Rapid_Slum_AppraisalForm(instance=R)
 	return render(request, 'riminsert.html', {'form': form})
 
@@ -271,7 +276,7 @@ def vulnerabilityreport(request):
 def slummap(request):
 	template = loader.get_template('slummapdisplay.html')
 	context = {"request":request}
-	return HttpResponse(template.render(context))
+	return render(request, 'slummapdisplay.html', context)
 
 @csrf_exempt
 @access_right
@@ -597,7 +602,8 @@ def familyrportgenerate(request):
 def city_wise_map_base64(request, key, slumname = None):
 	return city_wise_map(request, key, slumname, False)
 
-def city_wise_map(request, key, slumname = None, flag=True):
+
+def city_wise_map(request, key, slumname=None, flag=True):
 	if flag:
 		city = key.split('::')[1]
 		city = get_object_or_404(City, name__city_name=city)
@@ -606,18 +612,17 @@ def city_wise_map(request, key, slumname = None, flag=True):
 		city = cipher.decrypt(key.split('::')[1])
 		city = City.objects.get(id=city)
 
-	template = loader.get_template('city_wise_map.html')
-	data={}
-	if slumname :
-		data['slum_name' ] = slumname
+	context = {}
+	if slumname:
+		context['slum_name'] = slumname
 	if city:
-		data['city_id'] = city.id
-		data['city_name'] = city.name.city_name
+		context['city_id'] = city.id
+		context['city_name'] = city.name.city_name
 	else:
-		data['error'] = "URL incorrect"
-	data["request"] = request
-	context = data
-	return HttpResponse(template.render(context))
+		context['error'] = "URL incorrect"
+
+	return render(request, 'city_wise_map.html', context)
+
 
 def login_success(request):
 	return_to = ""

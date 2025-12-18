@@ -29,10 +29,21 @@
 	<div class="navbar-collapse collapse">
 		<a style="padding-top: 10px;">
 		{% if user.is_authenticated %}
-			<a style="margin-top:5px;" href="{% url 'logout' %}?next=/accounts/login/"<button type="button" class="btn btn-default pull-right" >logout</button> </a>
+			<a style="margin-top:5px;" href="{% url 'logout' %}?next={{ request.path }}">
+				<button type="button" class="btn btn-default pull-right" style="margin-top:10px;" >logout</button> 
+			</a>
 			<div class="pull-right" style="padding:10px;"> <h5>Welcome {{user}} </h5> </div>
+			{% if user.is_superuser or user.username == "GIS" %}
+                        <a style="margin-top:5px;" href="/admin">
+                                <button type="button" class="btn btn-default pull-right" style="margin-top:10px;" >Admin</button> 
+                        </a>
+                        <a style="margin-top:5px;" href="/">
+                                <button type="button" class="btn btn-default pull-right" style="margin-top:10px;" >Home</button> 
+                        </a>
+			{% endif %}
 		{% else %}
-			<a style="margin-top:5px;" href = "/accounts/login/"<button id="loggedin" type="button" class="btn btn-default pull-right"  data-toggle="popover">login</button></a>
+			<a style="margin-top:5px;" href = "/accounts/login/?next={{ request.path }}">
+				<button id="loggedin" type="button" class="btn btn-default pull-right"  data-toggle="popover">login</button></a>
 		{% endif %}	
 		</div >	
 	</div>

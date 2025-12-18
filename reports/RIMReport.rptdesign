@@ -2317,7 +2317,7 @@ return false;]]></method>
                 <cell id="74">
                     <label id="507">
                         <property name="style">SectionLabel</property>
-                        <text-property name="text">Approximate Area</text-property>
+                        <text-property name="text">Approximate Area(square meter)</text-property>
                     </label>
                 </cell>
                 <cell id="75">

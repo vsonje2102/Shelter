@@ -197,7 +197,15 @@ class avni_sync():
 
     # This function is used to create rhs data url when we sync data page wise.
     def create_registrationdata_url(self,subject_type):  # checked
-        latest_date = self.lastModifiedDateTime()
+        names = ["Banthara Town", "Mohanlalganj City"]
+        if subject_type == "Structure":
+            obj = HouseholdData.objects.filter(city__name__city_name__in=names).order_by('-submission_date').first()
+        elif subject_type == "Household":
+            obj = HouseholdData.objects.exclude(city__name__city_name__in=names).order_by('-submission_date').first()
+
+        latest_date = obj.submission_date + timedelta(days=-30)
+        latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
+        print(latest_date)
 
         household_path = 'api/subjects?lastModifiedDateTime=' + latest_date + '&subjectType=' + subject_type
         result = requests.get(self.base_url + household_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
@@ -1356,7 +1364,7 @@ class avni_sync():
                     with open('graphs/rim_questions_mapping.json') as datafile:
                         rim_questions = json.load(datafile)
                         toilet_data = self.map_rim_data(data['observations'], rim_questions[section_name])
-                        slum_id = Slum.objects.filter(name = slum_name).values_list('id', flat = True)[0]
+                        slum_id = Slum.objects.filter(name = slum_name).values_list('id', flat = True)[0]                    
                         slum_rim_obj = SlumData.objects.filter(slum_id = slum_id)
                         if slum_rim_obj.exists():
                             rim_data = slum_rim_obj.values_list('rim_data', flat = True)[0]
@@ -1366,33 +1374,42 @@ class avni_sync():
                                 print("Slum rim data updated successfully : ", slum_name)
                             else:
                                 toilet_section = rim_data[section_name]
-                                toilet_section.append(toilet_data)
+                                
+                                found = False
+                                for idx, item in enumerate(toilet_section):
+                                    if item.get("ctb name") == toilet_data.get("ctb name"):
+                                        toilet_section[idx] = toilet_data
+                                        found = True
+                                        break
+                                    
+                                if not found:
+                                    toilet_section.append(toilet_data)
+                                
                                 rim_data[section_name] = toilet_section
-                                slum_rim_obj.update(rim_data = rim_data)
-                                print("Slum rim data updated successfully : ", slum_name)
+                                slum_rim_obj.update(rim_data=rim_data)
                         else:
-                            print("Slum rim data not available for slum : ", slum_name)
+                            print("Slum Toilet data not available for slum : ", slum_name)
                         Update_count += 1
                 except Exception as e:
                     print(e)
         return Update_count
-
 
     def update_rim_data(self, get_text,slum_id):
         section_names = ['General' , 'Water', 'Waste', 'Drainage', 'Gutter', 'Road']
         Update_count = 0
         for data in get_text:
             if not data['Voided']:
-                print(get_text)
                 slum_name = data['location']['Slum']
-                last_modified_at = dateparser.parse(data['audit']['Last modified at'])
+                last_modified_str = data['audit']['Last modified at']
+                last_modified_at = datetime.strptime(last_modified_str, "%Y-%m-%dT%H:%M:%S.%fZ")
                 with open('graphs/rim_questions_mapping.json') as datafile:
                     rim_data = {}
                     rim_questions = json.load(datafile)
                     for section in section_names:
                         section_map_data = self.map_rim_data(data['observations'], rim_questions[section])
                         rim_data[section] = section_map_data
-                    rim_data['Toilet'] = []
+                    toilet_comment = data['observations'].get('Comment if any ?', "")
+                    rim_data['Toilet'] = [{"toilet_comment": toilet_comment}]
                     #slum_id, city_id = self.get_city_slum_ids(slum_name)
                     slum = Slum.objects.get(id=slum_id) 
                     city = slum.electoral_ward.administrative_ward.city
