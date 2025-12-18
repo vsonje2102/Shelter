@@ -124,20 +124,32 @@ class avni_sync():
                     del data['observations']["Last name"]
             # End
             # Add/Update other fields if required            
-            print(r.get('Funders Name'))
-            obs = data.setdefault('observations', {})
-            new_funder = r.get('Funders Name')
-            existing_funder = obs.get('Funders Name')
-            if new_funder and existing_funder != new_funder:
-                print(f"Funder name need to be updated for {r['uuid']}")
-                obs['Funders Name'] = new_funder
-            elif existing_funder == new_funder:
-               print(f"Funder name already present for {r['uuid']}")
-            else:
-               # No funder provided in source row; do not overwrite existing value
-               print(f"No funder name provided for {r['uuid']}; skipping update")
-            # if not data['observations']['Comment ?']:
-            #     data['observations']['Comment ?'] = r['Comment ?']     
+            # print(r.get('Funders Name'))
+            # obs = data.setdefault('observations', {})
+            # new_funder = r.get('Funders Name')
+            # existing_funder = obs.get('Funders Name')
+            # if new_funder and existing_funder != new_funder:
+            #     print(f"Funder name need to be updated for {r['uuid']}")
+            #     obs['Funders Name'] = new_funder
+            # elif existing_funder == new_funder:
+            #    print(f"Funder name already present for {r['uuid']}")
+            # else:
+            #    # No funder provided in source row; do not overwrite existing value
+            #    print(f"No funder name provided for {r['uuid']}; skipping update")
+            # if r['Comment ?'] == '-':
+            #     del data['observations']['Comment ?']
+            # elif r['Comment ?'] == "outside the boundary":
+            #     i = 0   
+            
+            # data['observations']['Plus code of the house'] = r['pluscode'] 
+
+            data['observations']['Plus Code Part'] = r['HousePart']
+                
+            # if r['Floor']:
+            #     data['observations']['Floors in the structure'] = r['Floor']
+            # else:
+            #     data['observations']['Floors in the structure'] = "G"
+            # print("Floor updated to ", data['observations']['Floors in the structure'])
             payload = json.dumps(data)
             # print(json.dumps(data, indent=2))
             # print(f"Updating UUID: {uuid} with payload: {payload}")
@@ -158,8 +170,8 @@ class avni_sync():
     #  Subject = 1
     # programEnrolment = 2
     def data_update_parallel(self,type):
-        db_name = "/home/shelter/Desktop/Scripts_Rules/scriptsPython/gholai_mhm_encounter.db"
-        table_name = "gholai_mhm_encounter"
+        db_name = "/home/shelter/Desktop/Scripts_Rules/scriptsPython/pluscode2.db"
+        table_name = "pluscode2"
         conn = sqlite3.connect(db_name)
         df = pd.read_sql_query(f'SELECT * FROM "{table_name}" WHERE status != 3', conn)
         print("Columns in Db are ", df.columns)
@@ -190,7 +202,7 @@ class avni_sync():
         final_list = []
         not_found = []
 
-        with ThreadPoolExecutor(max_workers=30) as executor:
+        with ThreadPoolExecutor(max_workers=12) as executor:
             futures = [executor.submit(self.process_record, r ,i+1, total_records,type) for i, r in df.iterrows()]
             for future in as_completed(futures):
                 res = future.result()

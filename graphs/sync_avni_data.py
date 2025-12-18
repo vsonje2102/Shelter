@@ -53,9 +53,13 @@ class avni_sync():
         return slum[0], slum[1]
 
     def lastModifiedDateTime(self):
-        last_submission_date = HouseholdData.objects.latest('submission_date')
-        latest_date = last_submission_date.submission_date
+        #last_submission_date = HouseholdData.objects.latest('submission_date')
+        #latest_date = last_submission_date.submission_date
         #latest_date = datetime.today() + timedelta(days= -1)
+        latest_date = datetime(2025, 11, 9) + timedelta(days=-1)
+
+
+        print("Latest date before formatting:", latest_date)    
         latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
         #iso = "2024-07-05T05:40:00.000Z"
         #latest_date = "2025-10-10T05:40:00.000Z"
@@ -703,11 +707,13 @@ class avni_sync():
 
     def SaveWaterData(self):  # checked
         pages, path = self.WaterEncounterData()
+        print(f"Saving water data for {pages} pages.")
         try:
             for i in range(pages):
                 send_request = requests.get(self.base_url + path + '&page=' + str(i),
                                             headers={'AUTH-TOKEN': self.get_cognito_token()})
                 data = json.loads(send_request.text)['content']
+                print(f"Processing page {i+1} with {len(data)} records.")
                 for j in data:
                     if not j['Voided'] and j['observations'] != {}:
                         water_data = j['observations']
@@ -730,10 +736,12 @@ class avni_sync():
 
     def SaveWasteData(self):  # checked
         pages, path = self.WasteEncounterData()
+        print(f"Saving waste data for {pages} pages.")
         try:
             for i in range(pages):
                 send_request = requests.get(self.base_url + path + '&page=' + str(i), headers={'AUTH-TOKEN': self.get_cognito_token()})
                 data = json.loads(send_request.text)['content']
+                print(f"Processing page {i+1} with {len(data)} records.")
                 for j in data:
                     if not j['Voided'] and j['observations'] != {}:
                         waste_data = j['observations']
@@ -778,11 +786,15 @@ class avni_sync():
 
     def SaveElectricityData(self):  # checked
         pages, path = self.ElectricityEncounterData()
+        print(f"Saving electricity data for {pages} pages.")
         try:
             for i in range(pages):
+
                 send_request = requests.get(self.base_url + path + '&page=' + str(i), headers={'AUTH-TOKEN': self.get_cognito_token()})
                 data = json.loads(send_request.text)['content']
+                print(f"Processing page {i+1} with {len(data)} records.")
                 for j in data:
+                    print(j)
                     if not j['Voided'] and j['observations'] != {}:
                         electricity_data = j['observations']
                         electricity_data.update({'Last_modified_date': j['audit']['Last modified at']})

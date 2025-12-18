@@ -5,3 +5,4 @@ from django.shortcuts import render
 
 def digipin_generate(request):
 	return render(request, "helpers/digipin_generate.html")
+
