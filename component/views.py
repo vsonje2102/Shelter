@@ -78,12 +78,17 @@ def get_component(request, slum_id):
         metadata = Metadata.objects.filter(visible=True).exclude(name='Shops').order_by('section__order','order')
     else:
         metadata = Metadata.objects.filter(visible=True).exclude(name='Shop').order_by('section__order','order')
-    print(metadata)
+    # print(metadata)
     rhs_analysis = {}
 
     fields_code = metadata.filter(type='F').exclude(code="").values_list('code', flat=True)
     fields = list(set([str(x.split(':')[0]) for x in fields_code]))
-    rhs_analysis = get_household_analysis_data(slum.electoral_ward.administrative_ward.city.id,slum.id, fields)
+    if slum_id == 2004 or slum_id == '2004':
+        print("Fetching data for Mumbai slum")
+        rhs_analysis = get_household_analysis_data_for_Mumbai(fields)
+    else:
+        rhs_analysis = get_household_analysis_data(slum.electoral_ward.administrative_ward.city.id,slum.id, fields)
+
 
     lstcomponent = [] 
     sponsor_houses = []
@@ -186,6 +191,8 @@ def format_data(rhs_data):
         except Exception as e:pass
     return new_rhs
 
+
+
 # @deco_rhs_permission
 def get_kobo_RHS_data(request, slum_id,house_num):
      output = OrderedDict()
@@ -195,7 +202,6 @@ def get_kobo_RHS_data(request, slum_id,house_num):
          output['admin_ward'] = slum.electoral_ward.administrative_ward.name
      output['slum_name'] = slum.name
      output['house_no'] = house_num         
-
      if request.user.is_superuser or request.user.groups.filter(name__in=['ulb']).exists():
          project_details = True
          output.update(get_kobo_RHS_list(slum.electoral_ward.administrative_ward.city.id, slum,slum_id ,house_num))
@@ -204,6 +210,8 @@ def get_kobo_RHS_data(request, slum_id,house_num):
          output.update(get_kobo_RHS_list(slum.electoral_ward.administrative_ward.city.id, slum, slum_id,house_num))
      elif request.user.groups.filter(name='sponsor').exists():
          project_details = SponsorProjectDetails.objects.filter(slum=slum, sponsor__user=request.user, household_code__contains=int(house_num)).exists()
+     elif (request.user.is_superuser or request.user.groups.filter(name__in=['MumbaiSra','GIS']).exists()) and slum_id=='2004':
+            output.update(get_rhs_details_for_Mumbai(slum.name,house_num))
      if request.user.groups.filter(name='ulb').exists():
          project_details = False
      
