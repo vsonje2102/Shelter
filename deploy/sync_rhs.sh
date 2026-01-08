@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
 
 cd /srv/Shelter/
 env
@@ -95,7 +97,12 @@ case "$MODE" in
 esac
 
 echo "========== $(date "+%Y-%m-%d %H:%M:%S") : Starting RHS sync (mode=$MODE, print_token=$PRINT_TOKEN, print_console=$PRINT_CONSOLE) =========="
+<<<<<<< HEAD
 python manage.py shell <<EOF
+=======
+
+python3 manage.py shell <<EOF
+>>>>>>> Feature|avni-multi-sync-manual-trigger
 from importlib import reload
 import time
 import graphs.sync_avni_data as sync_module

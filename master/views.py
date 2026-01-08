@@ -21,6 +21,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.gis import geos
 from django.views.decorators.clickjacking import xframe_options_exempt
+from requests import request
 
 from master.models import Survey, CityReference, Rapid_Slum_Appraisal, \
 						  Slum, AdministrativeWard, ElectoralWard, City, \
@@ -153,7 +154,6 @@ def rimdisplay(request):
 
 @csrf_exempt
 def rimedit(request,Rapid_Slum_Appraisal_id):
-	"""Update Rapid Slum Appraisal Record"""
 	if request.method == 'POST':
 		R = Rapid_Slum_Appraisal.objects.get(pk=Rapid_Slum_Appraisal_id)
 		form = Rapid_Slum_AppraisalForm(request.POST or None,request.FILES,instance=R)
@@ -276,6 +276,7 @@ def vulnerabilityreport(request):
 def slummap(request):
 	template = loader.get_template('slummapdisplay.html')
 	context = {"request":request}
+	return render(request, 'slummapdisplay.html', context)
 	return render(request, 'slummapdisplay.html', context)
 
 @csrf_exempt
@@ -604,6 +605,8 @@ def city_wise_map_base64(request, key, slumname = None):
 
 
 def city_wise_map(request, key, slumname=None, flag=True):
+
+def city_wise_map(request, key, slumname=None, flag=True):
 	if flag:
 		city = key.split('::')[1]
 		city = get_object_or_404(City, name__city_name=city)
@@ -615,7 +618,12 @@ def city_wise_map(request, key, slumname=None, flag=True):
 	context = {}
 	if slumname:
 		context['slum_name'] = slumname
+	context = {}
+	if slumname:
+		context['slum_name'] = slumname
 	if city:
+		context['city_id'] = city.id
+		context['city_name'] = city.name.city_name
 		context['city_id'] = city.id
 		context['city_name'] = city.name.city_name
 	else:

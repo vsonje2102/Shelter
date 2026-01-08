@@ -29,7 +29,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 import time
 import jwt
-
+TYPE = {
+    1: 'subject',
+    2: 'programEnrolment'
+}
 
 class avni_sync():
     def __init__(self):
@@ -52,17 +55,23 @@ class avni_sync():
         self.get_cognito_details()
         command_data = subprocess.Popen(['node', 'graphs/avni/token.js',self.poolId, self.clientId, settings.AVNI_USERNAME, settings.AVNI_PASSWORD], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, stderr = command_data.communicate()
-        self.token = stdout.decode("utf-8").replace('\n','')
+        #self.token = stdout.decode("utf-8").replace('\n','')
+        decoded = stdout.decode("utf-8")
+        lines = [line.strip() for line in decoded.splitlines() if line.strip()]
+        self.token = lines[-1]
+        print(self.token)
         self.token_expiry = self.get_token_expiry(self.token)
         return self.token
     
     def make_request(self, method, url, data=None):
         headers = {'auth-token': self.ensure_token(), 'Content-Type': 'application/json'}
+        #print(headers['auth-token'])
         response = requests.request(method, url, headers=headers, data=data)
         if response.status_code == 401:
             # Token expired, refresh once
             headers['auth-token'] = self.get_cognito_token()
             response = requests.request(method, url, headers=headers, data=data)
+        print(f"Request {method} {url} returned status {response.status_code}")
         return response
     
     def ensure_token(self):
@@ -76,49 +85,75 @@ class avni_sync():
         return self.token    
     
     # --- Process a single record ---
-    def process_record(self, r , record_num, total_records):
+    def process_record(self, r , record_num, total_records,type):
         result = {"uuid": r['uuid'], "status": None, "not_found": False}
         uuid = r['uuid']
-
         print(f"[{record_num}/{total_records}] Processing UUID: {uuid}")
-
-        table_name = "digipin"
         try:
+            url_part = f"api/{TYPE[type]}/"
             subject_id = r['uuid']
-            req = self.make_request("GET", self.base_url + 'api/subject/' + subject_id)
+            req = self.make_request("GET", self.base_url + url_part + subject_id)
 
             if req.status_code != 200:
                 result['status'] = 2  # GET failed
+                print(f"❌ Record {uuid} not found.")
                 return result
+            else:
+                print(f"Record {uuid} fetched successfully.")
 
             data = req.json()
 
-            # Build address
-            loc = data['location']
-            address = ''
-            if 'Admin' in loc and 'Ward' in loc:
-                address = f"{loc['City']}, {loc['Admin']}, {loc['Ward']}, {loc['Slum']}"
-            elif 'Admin' in loc:
-                address = f"{loc['City']}, {loc['Admin']}, {loc['Slum']}"
-            else:
-                address = f"{loc['City']}, {loc['Ward']}, {loc['Slum']}"
 
-            del data['location']
-            data['Address'] = address
+            # Build address Compulsory start for subject
+            if type == 1: # When we update in subject type then only we required locaiton not for preogram encounter
+                loc = data['location']
+                address = ''
+                if 'Admin' in loc and 'Ward' in loc:
+                    address = f"{loc['City']}, {loc['Admin']}, {loc['Ward']}, {loc['Slum']}"
+                elif 'Admin' in loc:
+                    address = f"{loc['City']}, {loc['Admin']}, {loc['Slum']}"
+                else:
+                    address = f"{loc['City']}, {loc['Ward']}, {loc['Slum']}"
 
-            data["First name"] = data['observations']["First name"]
-            del data['observations']["First name"]
-            if "Last name" in data['observations']:
-                del data['observations']["Last name"]
+                del data['location']
+                data['Address'] = address
 
-            if not r['digipin']:
-                result['not_found'] = True
-                return result
+                data["First name"] = data['observations']["First name"]
+                del data['observations']["First name"]
+                if "Last name" in data['observations']:
+                    del data['observations']["Last name"]
+            # End
+            # Add/Update other fields if required            
+            # print(r.get('Funders Name'))
+            # obs = data.setdefault('observations', {})
+            # new_funder = r.get('Funders Name')
+            # existing_funder = obs.get('Funders Name')
+            # if new_funder and existing_funder != new_funder:
+            #     print(f"Funder name need to be updated for {r['uuid']}")
+            #     obs['Funders Name'] = new_funder
+            # elif existing_funder == new_funder:
+            #    print(f"Funder name already present for {r['uuid']}")
+            # else:
+            #    # No funder provided in source row; do not overwrite existing value
+            #    print(f"No funder name provided for {r['uuid']}; skipping update")
+            # if r['Comment ?'] == '-':
+            #     del data['observations']['Comment ?']
+            # elif r['Comment ?'] == "outside the boundary":
+            #     i = 0   
+            
+            # data['observations']['Plus code of the house'] = r['pluscode'] 
 
-            data['observations']['Digipin of the structure'] = r['digipin']
+            data['observations']['Plus Code Part'] = r['HousePart']
+                
+            # if r['Floor']:
+            #     data['observations']['Floors in the structure'] = r['Floor']
+            # else:
+            #     data['observations']['Floors in the structure'] = "G"
+            # print("Floor updated to ", data['observations']['Floors in the structure'])
             payload = json.dumps(data)
-
-            put_response = self.make_request("PUT", self.base_url + 'api/subject/' + subject_id, data=payload)
+            # print(json.dumps(data, indent=2))
+            # print(f"Updating UUID: {uuid} with payload: {payload}")
+            put_response = self.make_request("PUT", self.base_url + url_part + subject_id, data=payload)
             if put_response.status_code != 200:
                 result['status'] = 4  # PUT failed
             else:
@@ -127,24 +162,48 @@ class avni_sync():
                 result['status'] = 3  # Success
 
         except Exception as e:
-            print(subject_id, "Error:", e)
+            print("Error:", e)
             result['status'] = 5  # Exception
         return result
 
     # --- Main update function ---
-    def subject_data_update_parallel(self):
-        db_name = "/home/shelterassociate/Desktop/scriptsPython/digipin.db"
-        table_name = "digipin"
+    #  Subject = 1
+    # programEnrolment = 2
+    def data_update_parallel(self,type):
+        db_name = "/home/shelter/Desktop/Scripts_Rules/scriptsPython/pluscode2.db"
+        table_name = "pluscode2"
         conn = sqlite3.connect(db_name)
         df = pd.read_sql_query(f'SELECT * FROM "{table_name}" WHERE status != 3', conn)
+        print("Columns in Db are ", df.columns)
+        # Ensure 'uuid' column exists (case-insensitive). Rename matched column to 'uuid'.
+        if 'uuid' not in df.columns:
+            lower_map = {c.lower(): c for c in df.columns}
+            if 'uuid' in lower_map:
+                orig = lower_map['uuid']
+                df = df.rename(columns={orig: 'uuid'})
+                print(f"Renamed column '{orig}' to 'uuid'")
+            else:
+                print("ERROR: 'uuid' column not found in the table. Aborting update.")
+                conn.close()
+                return
+
+        # Drop rows without uuid or with empty uuid
+        df = df[df['uuid'].notnull() & (df['uuid'].astype(str).str.strip() != '')].copy()
+        if df.empty:
+            print("No records with a valid uuid to process.")
+            conn.close()
+            return
+
+        # Ensure uuid is string
+        df['uuid'] = df['uuid'].astype(str)
         total_records = len(df)        
         print(f"Total records to process: {total_records}")
 
         final_list = []
         not_found = []
 
-        with ThreadPoolExecutor(max_workers=20) as executor:
-            futures = [executor.submit(self.process_record, r ,i+1, total_records) for i, r in df.iterrows()]
+        with ThreadPoolExecutor(max_workers=12) as executor:
+            futures = [executor.submit(self.process_record, r ,i+1, total_records,type) for i, r in df.iterrows()]
             for future in as_completed(futures):
                 res = future.result()
                 uuid = res['uuid']
@@ -165,11 +224,11 @@ class avni_sync():
         print("List of records not found:", not_found)
 
     def subject_data_update(self):
-        db_name = "/home/shelterassociate/Desktop/scriptsPython/digipin.db"
+        db_name = "/home/shelter/Desktop/Scripts_Rules/scriptsPython/out.db"
         conn = sqlite3.connect(db_name)
-        table_name = "digipin"
+        table_name = "out"
         df = pd.read_sql_query(f"SELECT * FROM \"{table_name}\" where status != 3", conn)
-        #print(df)
+        # print(df)
         cur = conn.cursor()
         count = 1
         final_list = []
@@ -208,18 +267,32 @@ class avni_sync():
                         del data['observations']["Last name"]
                     
                     # END
-                    # # Add/Update other fields if required
-                    if r['digipin'] == None or r['digipin'] == '':
-                        print(f"Digipin not present for {r['uuid']}")
-                        not_found.append(r['uuid'])
-                        continue
-                    else:
+                    # # START Add/Update other fields if required
+                    # if r['digipin'] == None or r['digipin'] == '':
+                        # print(f"Digipin not present for {r['uuid']}")
+                        # not_found.append(r['uuid'])
+                        # continue
+                    # else:
                         # print(f"Digipin present for {r['uuid']}")
-                        data['observations']['Digipin of the structure'] = r['digipin']
-                        final_list.append(r['uuid'])    
-                    
+                        # data['observations']['Digipin of the structure'] = r['digipin']
+                        # final_list.append(r['uuid'])
+                    if 'Comment ?' in data.get('observations', {}):
+                        if data['observations']['Comment ?']:
+                            print(f"Comment already present for {r['uuid']}")
+                            print(f"Existing comment: {data['observations']['Comment ?']}")
+                            print(f"New comment to append: {r['Comment if any ?']}")
+                            appended_comment = data['observations']['Comment ?'] + "; " + r['Comment if any ?']
+                            data['observations']['Comment ?'] = appended_comment
+                        else:
+                            print(f"Comment key present but empty for {r['uuid']}")
+                            data['observations']['Comment ?'] = r['Comment if any ?']
+                    else:
+                        print(f"Comment key not present for {r['uuid']}")
+                        data.setdefault('observations', {})['Comment ?'] = r['Comment if any ?']
+                                        # END
+
                     payload = json.dumps(data)
-                    # print(payload)
+                    print(payload)
 
                     url = self.base_url +  'api/subject/' + subject_id
                     headers={'auth-token': self.get_cognito_token(),
@@ -429,3 +502,73 @@ class avni_sync():
         conn.commit()
         conn.close()
         print(final_list)
+        
+    # --- Get Household Details ---
+    # This it to be used when you need to fetch details of singel household using subject id
+    def get_household_details(self, subject_id):
+        send_request = requests.get(self.base_url + 'api/subject/' + subject_id,
+                                    headers={'AUTH-TOKEN': self.get_cognito_token()})
+        self.get_HH_data = json.loads(send_request.text)
+        print(json.dumps(self.get_HH_data))
+        a_city = self.city = self.get_HH_data['location']['City']
+        b_slum = self.slum = self.get_HH_data['location']['Slum']
+        c_HH = self.HH = str(int(self.get_HH_data['observations']['First name']))
+        d_date = self.SubmissionDate = self.get_HH_data['audit']['Last modified at']
+        
+        return json.dumps(self.get_HH_data)
+    
+    # --- Update Household Details ---
+    # This it to be used when you need to update details of singel household using subject id
+    def update_household_details(self, subject_id):
+        subject_id = "8901e1fb-2599-43a4-b2e7-1799e27f230b"
+        Request = requests.get(self.base_url + 'api/subject/' + subject_id ,headers={'AUTH-TOKEN': self.get_cognito_token()})
+        # print(Request)
+        if Request.status_code == 200:
+            data = json.loads(Request.text)
+            print(data)
+            # demo = json.dumps(data)
+            # print("Data fetched from AVNI")
+            # print(demo)
+            ''' For every subject we have to provide the address. You can get the address from location data i the response data.'''
+            location_cred = data['location']
+            address = ''
+            if 'Admin' in location_cred and 'Ward' in location_cred:
+                address += location_cred['City'] + ', ' + location_cred['Admin'] + ', ' + location_cred['Ward'] + ', ' + location_cred['Slum']
+            elif 'Admin' in location_cred:
+                address += location_cred['City'] + ', ' + location_cred['Admin']  + ', ' + location_cred['Slum']
+            else:
+                address += location_cred['City'] + ', ' + location_cred['Ward']  + ', ' + location_cred['Slum']
+
+            del data['location']
+            data['Address'] = address # r['address']
+            
+            data["First name"] = data['observations']["First name"]
+            del data['observations']["First name"]
+
+            if "Last name" in data['observations']:
+                del data['observations']["Last name"]
+            
+            # END
+            # # Add/Update other fields if required
+            data['observations']['Waste Main Category'] = "Open space"
+            data['observations']['Water Main Category'] = "Private water Source"
+            data['observations']['Water Sub Category'] = "Water Supply Tap"
+            ##
+            payload = json.dumps(data)
+            print(payload)
+            # url = self.base_url +  'api/subject/' + subject_id
+            # headers={'auth-token': self.get_cognito_token(),
+            #         'Content-Type': 'application/json',
+            #         }
+            # print(headers['auth-token'])
+            # response = requests.request("PUT", url, headers = headers, data = payload)
+            # if response.status_code != 200:
+            #     print("Record", subject_id, "Update Failed")
+            #     print(response.text)
+            # else:
+            #     print("Record", subject_id, "Updated Successfully")
+        else:
+            print("Failed to fetch data")
+            payload = None
+        
+        return payload 
