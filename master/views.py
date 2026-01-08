@@ -604,7 +604,6 @@ def city_wise_map_base64(request, key, slumname = None):
 	return city_wise_map(request, key, slumname, False)
 
 
-def city_wise_map(request, key, slumname=None, flag=True):
 
 def city_wise_map(request, key, slumname=None, flag=True):
 	if flag:
