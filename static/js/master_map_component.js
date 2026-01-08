@@ -35,48 +35,102 @@ function familyfactsheet_click(slum, house){
 
 //household details
 function household_details(housenumber){
-    //sponsorinfo.setContent('<div class="overlay" style="display: block;"><div id="loading-img"></div></div>');
-    let div_modal = $("#household_data");
-    div_modal.find('#modelhdtext').html("House : "+housenumber);
-    div_modal.find('#modelbody').html('<div class="overlay" style="display: block;"><div id="loading-img"></div></div>');
-    div_modal.modal('show');
-    $.ajax({
-        url : '/component/get_kobo_RHS_list/' + global_slum_id + '/' + housenumber,
-        type : "GET",
-        contenttype : "json",
-        success : function(json) {
-            var spstr = "";
-            spstr += '<table class="table table-striped" style="font-size: 10px;"><tbody>';
-            if(json['FFReport']){
-                flag = false;
-                let fields = $("a[name=chk_group]:contains('Sponsor')").parent().find('input[type=checkbox]');
-                fields.slice(0, fields.length - 1).each(function(ind, chk){
-                        if($(chk).is(":checked")){
-                                flag=true;
-                            }
-                });
-                if (flag){
-                    spstr += '<tr><td colspan="2"><a href="javascript:familyfactsheet_click('+global_slum_id+', '+housenumber+')" style="cursor:pointer;color:darkred;">View Factsheet</a></td></tr>';
-                }
-            }
+	let div_modal = $("#household_data");
 
-            $.each(json, function(k, v) {
-                if(k != 'FFReport'){
-                    spstr += '<tr><td>' + k + '</td><td>' + v + '</td></tr>';
-                }
-            });
-            spstr += '</tbody></table>';
-            div_modal.find('#modelbody').html(spstr);
+	div_modal.find('#modelhdtext').html("House : " + housenumber);
+	div_modal.find('#modelbody').html(
+		'<div class="overlay" style="display:block;"><div id="loading-img"></div></div>'
+	);
 
-        },
-        error : function(response){
-            div_modal.modal('hide');
-            if (response.responseText!=""){
-                    alert(response.responseText);
-                }
-        }
-    });
+	div_modal.modal('show');
+
+	$.ajax({
+		url: '/component/get_kobo_RHS_list/' + global_slum_id + '/' + housenumber,
+		type: "GET",
+		contentType: "json",
+
+		success: function(json) {
+
+			let spstr = "";
+			let mapUrl = "";
+			let lat = json.Latitude;
+			let lng = json.Longitude;
+            console.log("Latitude:", lat, "Longitude:", lng);
+			// Build Google Maps URL if lat/lng exist
+			if (lat && lng) {
+				mapUrl = `https://www.google.com/maps/place/${lat},${lng}`;
+			}
+
+			spstr += '<table class="table table-striped" style="font-size:10px;">';
+			spstr += '<tbody>';
+
+			if (json['FFReport']) {
+				let flag = false;
+				let fields = $("a[name=chk_group]:contains('Sponsor')")
+					.parent()
+					.find('input[type=checkbox]');
+
+				fields.slice(0, fields.length - 1).each(function(_, chk){
+					if ($(chk).is(":checked")) {
+						flag = true;
+					}
+				});
+
+				if (flag) {
+					spstr += `
+						<tr>
+							<td colspan="2">
+								<a href="javascript:familyfactsheet_click(${global_slum_id}, ${housenumber})"
+								   style="cursor:pointer;color:darkred;">
+									View Factsheet
+								</a>
+							</td>
+						</tr>`;
+				}
+			}
+
+			// Show QR section
+			if (mapUrl) {
+				spstr += `
+					<tr>
+						<td>Location</td>
+						<td>
+							<div id="qr_${housenumber}"></div>
+							<a href="${mapUrl}" target="_blank">Open in Map</a>
+						</td>
+					</tr>`;
+			}
+
+			// Normal key-value rows
+			$.each(json, function(k, v) {
+				if (k !== 'FFReport' && k !== 'latitude' && k !== 'longitude') {
+					spstr += `<tr><td>${k}</td><td>${v}</td></tr>`;
+				}
+			});
+
+			spstr += '</tbody></table>';
+
+			div_modal.find('#modelbody').html(spstr);
+
+			// Generate QR (client-side only)
+			if (mapUrl) {
+				new QRCode(document.getElementById(`qr_${housenumber}`), {
+					text: mapUrl,
+					width: 120,
+					height: 120
+				});
+			}
+		},
+
+		error: function(response){
+			div_modal.modal('hide');
+			if (response.responseText !== "") {
+				alert(response.responseText);
+			}
+		}
+	});
 }
+
 
 //Click on each layer display values
 function onEachFeature(feature, layer){

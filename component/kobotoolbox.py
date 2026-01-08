@@ -25,6 +25,52 @@ def survey_mapping(survey_type):
         return wrapper
     return real_decorator
 
+def get_rhs_details_for_Mumbai(slum_name, house_num):
+    path = "/home/shelter/household_data.json"
+    output = {}
+    with open(path, encoding='utf-8') as datafile:
+        household_data = json.load(datafile)
+
+    try:
+        for household_key, household_obj in household_data.items():
+            household_no = household_key.lstrip("0")
+            output = household_obj.get('rhs_details', {})
+
+
+    except Exception as e:
+        output['Household_details'] = {}
+    return output
+
+def get_household_analysis_data_for_Mumbai(question_fields):
+    path = "/home/shelter/household_data.json"
+    output = {}
+    with open(path, encoding='utf-8') as datafile:
+        household_data = json.load(datafile)
+    for household_key, household_obj in household_data.items():
+        household_no = household_key.lstrip("0")
+        rhs_data = household_obj.get('rhs_details', {})
+
+        for ques in question_fields:
+            if ques in rhs_data and rhs_data[ques] and (rhs_data[ques] == rhs_data[ques]):
+                ques_ans = rhs_data[ques]
+                if ques == 'group_oi8ts04/Current_place_of_defecation':
+                        if ques_ans == 'Yes':
+                            ques_ans = 'Toilet Available'
+                        else:
+                            ques_ans = 'No Toilet'
+
+                if ques not in output:
+                    output[ques] = {ques_ans:[str(household_no), ]}
+                else:
+                    if ques_ans not in output[ques]:
+                        output[ques][ques_ans] = [str(household_no), ]
+                    else:
+                        output[ques][ques_ans].append(household_no)
+        print("Processed Household No:", household_no)
+        print("Current Output Data:", output)
+                        
+    return output
+
 
 #@survey_mapping(SURVEYTYPE_CHOICES[1][0])
 def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''):
@@ -47,9 +93,6 @@ def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''
     for household, list_record in grouped_records:
         # print(household)
         # print(list_record)
-        if household in ["0100","0292","0374","0606","0756" ]:
-            print("debug")
-            print(list(list_record))
         record_sorted = list(list_record) #sorted(list(list_record), key=lambda x:x['_submission_time'], reverse=False)
         if slum_code in ['1971' , '1972'] or slum_code in [1971, 1972]:
             household_no = household
@@ -112,9 +155,6 @@ def get_household_analysis_data(city, slum_code, question_fields, kobo_survey=''
                                 output[field][data].append(str(household_no))
                 else:
                     data = record[field]
-                    if data == "Individual home + shop":
-                        print("Data Value:", data)
-                        print("field:", field)
                     for val in data if type(data)==list else data.split(','):
                         if field not in output:                            
                             output[field] = {}

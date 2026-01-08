@@ -15,7 +15,7 @@ from .kmlparser import KMLParser
 from .models import Metadata
 from .cipher import *
 from master.models import Slum, Rapid_Slum_Appraisal, drainage
-from sponsor.models import SponsorProjectDetails
+from sponsor.models import SponsorProject, SponsorProjectDetails
 from graphs.sync_avni_data import *
 from utils.utils_permission import apply_permissions_ajax, access_right, deco_rhs_permission
 from django.core.exceptions import PermissionDenied
@@ -57,11 +57,20 @@ def get_component(request, slum_id):
        Here sponsor data is fetch according to user role access rights
     '''
     slum = get_object_or_404(Slum, pk=slum_id)
-    sponsors=[]
     city_name = list(Slum.objects.filter(id = slum.id).values_list('electoral_ward__administrative_ward__city__name__city_name', flat = True))[0]
     sponsor_slum_count = 0
+    sponsors = []
+    sponsor_project_detail_ids = []
+
     if not request.user.is_anonymous:
-       sponsors = request.user.sponsor_set.all().values_list('id',flat=True)
+        sponsors = request.user.sponsor_set.all().values_list("id", flat=True)
+        
+        sponsor_project_detail_ids = (
+            SponsorProject.objects
+            .filter(sponsor_id__in=sponsors)
+            .values_list("id", flat=True)
+        )
+
        #sponsor_slum_count = SponsorProjectDetails.objects.filter(slum = slum).count()
     #Fetch filter and sponsor metadata
     # if slum in slum_list we fetch Shop data from mastersheet else we fetch Shops data from kml data.
@@ -69,12 +78,17 @@ def get_component(request, slum_id):
         metadata = Metadata.objects.filter(visible=True).exclude(name='Shops').order_by('section__order','order')
     else:
         metadata = Metadata.objects.filter(visible=True).exclude(name='Shop').order_by('section__order','order')
-    print(metadata)
+    # print(metadata)
     rhs_analysis = {}
 
     fields_code = metadata.filter(type='F').exclude(code="").values_list('code', flat=True)
     fields = list(set([str(x.split(':')[0]) for x in fields_code]))
-    rhs_analysis = get_household_analysis_data(slum.electoral_ward.administrative_ward.city.id,slum.id, fields)
+    if slum_id == 2004 or slum_id == '2004':
+        print("Fetching data for Mumbai slum")
+        rhs_analysis = get_household_analysis_data_for_Mumbai(fields)
+    else:
+        rhs_analysis = get_household_analysis_data(slum.electoral_ward.administrative_ward.city.id,slum.id, fields)
+
 
     lstcomponent = [] 
     sponsor_houses = []
@@ -82,7 +96,7 @@ def get_component(request, slum_id):
     for metad in metadata:
         component = {}
         component['name'] = metad.name
-        if component['name'] == 'Slum boundary' and slum_id == '1971':
+        if component['name'] == 'Slum boundary' and slum_id in ['1971','1972']:
             component['name'] = 'Town boundary'
         component['level'] = metad.level
         component['section'] = metad.section.name
@@ -118,7 +132,7 @@ def get_component(request, slum_id):
         elif metad.type == 'S' and (metad.authenticate == False or not request.user.is_anonymous) :
             if  metad.code!= "":
                 sponsor_households = []
-                sponsor_households = SponsorProjectDetails.objects.filter(slum = slum, sponsor__id = int(metad.code)).values_list('household_code', flat=True)
+                sponsor_households = SponsorProjectDetails.objects.filter(sponsor_project__id=int(metad.code),slum=slum).values_list("household_code", flat=True)
                 if len(sponsor_households)>0:
                     try:
                         sponsor_households = sum(list(sponsor_households), [])
@@ -126,7 +140,7 @@ def get_component(request, slum_id):
                         sponsor_households = sum(map(lambda x : json.loads(x),sponsor_households),[])
                 if metad.section.name=="Sponsor":
                     sponsor_houses.extend(sponsor_households)
-                if request.user.is_superuser or int(metad.code) in sponsors or metad.authenticate == False :
+                if request.user.is_superuser or int(metad.code) in sponsor_project_detail_ids or metad.authenticate == False :
                     component['child'] = sponsor_households
             else:
                 component['child'] = sponsor_houses
@@ -177,6 +191,8 @@ def format_data(rhs_data):
         except Exception as e:pass
     return new_rhs
 
+
+
 # @deco_rhs_permission
 def get_kobo_RHS_data(request, slum_id,house_num):
      output = OrderedDict()
@@ -186,7 +202,6 @@ def get_kobo_RHS_data(request, slum_id,house_num):
          output['admin_ward'] = slum.electoral_ward.administrative_ward.name
      output['slum_name'] = slum.name
      output['house_no'] = house_num         
-
      if request.user.is_superuser or request.user.groups.filter(name__in=['ulb']).exists():
          project_details = True
          output.update(get_kobo_RHS_list(slum.electoral_ward.administrative_ward.city.id, slum,slum_id ,house_num))
@@ -195,6 +210,8 @@ def get_kobo_RHS_data(request, slum_id,house_num):
          output.update(get_kobo_RHS_list(slum.electoral_ward.administrative_ward.city.id, slum, slum_id,house_num))
      elif request.user.groups.filter(name='sponsor').exists():
          project_details = SponsorProjectDetails.objects.filter(slum=slum, sponsor__user=request.user, household_code__contains=int(house_num)).exists()
+     elif (request.user.is_superuser or request.user.groups.filter(name__in=['MumbaiSra','GIS']).exists()) and slum_id=='2004':
+            output.update(get_rhs_details_for_Mumbai(slum.name,house_num))
      if request.user.groups.filter(name='ulb').exists():
          project_details = False
      
