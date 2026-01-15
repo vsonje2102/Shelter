@@ -466,17 +466,16 @@ def get_kobo_RIM_report_detail(city, slum_code, kobo_survey=''):
     if not slum_qs.exists():
         return output
     slum_obj = slum_qs[0]
-
     rim_qs = SlumData.objects.filter(slum_id = slum_obj.id)
     if not rim_qs.exists():
         return output
 
     data = rim_qs.values_list('rim_data', flat = True)[0]
     submission_date, created_on, modified_on = rim_qs.values_list('submission_date', 'created_on', 'modified_on')[0]
-    output['submission_date'] = submission_date.strftime("%B %Y") if submission_date else "Don't know"
-    output['modified_on'] = modified_on.strftime("%B %Y") if modified_on else "Don't know"
-
-    # Useful Functions ...  
+    output['submission_date'] = submission_date.strftime("%B %Y") if submission_date else "NA"
+    output['modified_on'] = modified_on.strftime("%B %Y") if modified_on else "NA"
+    
+	# Useful Functions ...
     def data_processing(data):
         keys = list(data.keys())
         d = {}
@@ -507,7 +506,7 @@ def get_kobo_RIM_report_detail(city, slum_code, kobo_survey=''):
     if 'Toilet' in data:
         toilet_info = data['Toilet']
         output['number_of_community_toilet_blo'] = 0
-        output['toilet_comment'] = data['Toilet'][0]['toilet_comment'] if 'toilet_comment' in data['Toilet'][0] else ""
+        output['toilet_comment'] = toilet_info[0].get('toilet_comment', "")
         seats_f_man = 0
         seats_f_woman = 0
         seats_f_mix = 0
@@ -519,7 +518,7 @@ def get_kobo_RIM_report_detail(city, slum_code, kobo_survey=''):
         water_supply_condition = []
         for i in toilet_info:
             if 'ctb name' in i:
-                    output['number_of_community_toilet_blo'] += 1
+                output['number_of_community_toilet_blo'] += 1
             if 'is_the_CTB_in_use' in i and i['is_the_CTB_in_use'] == 'Yes':
                 if 'number_of_seats_allotted_to_wo' in i:
                     seats_f_woman += int(i['number_of_seats_allotted_to_wo'])
