@@ -72,7 +72,8 @@ class SyncJobRecord(models.Model):
     household = models.ForeignKey(HouseholdData, on_delete=models.SET_NULL, null=True, blank=True, related_name="sync_records", db_index=True) # Household reference
     error_message = models.TextField(blank=True, null=True)  # Failure reason
     message = models.CharField(max_length=255, blank=True, null=True)  # Short comment
-
+    before_data = models.JSONField(blank=True, null=True)  # Data before operation
+    after_data = models.JSONField(blank=True, null=True)  # Data after operation    
     class Meta:
         db_table = "sync_job_record"
 

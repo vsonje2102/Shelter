@@ -64,7 +64,7 @@ from graphs.models import *
 from mastersheet.models import *
 from master.models import *
 from helpers.models import *
-from graphs.sync_avni_data import avni_sync
+from helpers.sync_base import AvniBaseSync
 
 
 # -------------------- ENCOUNTER DEFINITIONS --------------------
@@ -72,87 +72,16 @@ from graphs.sync_avni_data import avni_sync
 direct_encounters = ['Sanitation', 'Property tax', 'Water', 'Waste', 'Electricity', 'Daily Mobilization Activity']
 program_encounters = ['Daily Reporting', 'Family factsheet']
 
-mapping_encounter_type = {
-	'Sanitation': 1,
-	'Water': 2,
-	'Waste': 3,
-	'Electricity': 4,
-	'Property tax': 5,
-	'Daily Mobilization Activity': 6,
-	'Family factsheet': 7,
-	'Daily Reporting': 8,
-	'member core data': 9,
-	'member program data': 10,
-	'member encounter data': 11,
-	'Structure': 12,
-	'Household': 13,
-}
-
-operation_type_mapping = {'1': 'CREATE', '2': 'UPDATE', '3': 'DELETE'}
-status_type_mapping = {'1': 'SUCCESS', '2': 'FAILED', '3': 'SKIPPED'}
 
 
 # -------------------- MAIN SYNC CLASS --------------------
 
-class AvniDirectEncounterSync(avni_sync):
+class AvniDirectEncounterSync(AvniBaseSync):
 	"""
 	Encounter sync handler for Avni
 	dry_run = True → preview only, no DB writes
 	debug = True → print debug logs
 	"""
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.debug = False
-		self.dry_run = False  
-
-	# ---------- DEBUG HELPER ----------
-
-	def print_debug(self, message):
-		if self.debug:
-			if self.dry_run:
-				message = "[DRY RUN] " + message
-			print(message)
-
-	# ---------- SYNC JOB HELPERS ----------
-
-	def get_latest_modified_date(self, module_id):
-		self.print_debug(f"[SYNC] Fetching last modified date for module {module_id}")
-		try:
-			obj = SyncJob.objects.filter(module__id=module_id,status= "SUCCESS").order_by('-ended_at').first()
-			self.print_debug(f"[SYNC] Last modified date fetched: {obj.ended_at if obj else 'No previous sync found'}")
-			if obj and obj.ended_at:
-				return obj.ended_at.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-		except Exception as e:
-			self.print_debug(f"[ERROR] Failed to fetch last modified date: {e}")
-		return (timezone.now() - timedelta(days=30)).strftime('%Y-%m-%dT%H:%M:%S.%fZ')
-
-	def start_sync_job(self, module_id, triggered_by="Admin_User"):
-		self.print_debug(f"[SYNC] Starting sync job for module {module_id}")
-		status = "DRY_RUN" if self.dry_run else "RUNNING"
-		return SyncJob.objects.create(module_id=module_id, status=status, triggered_by=triggered_by, started_at=timezone.now())
-
-	def finish_sync_job(self, sync_job, status, total, success, failed, message):
-		self.print_debug(f"[SYNC] Finishing job {sync_job.id} | Status={status}")
-		sync_job.ended_at = timezone.now()
-		sync_job.status = status
-		sync_job.total_records = total
-		sync_job.success_count = success
-		sync_job.failed_skipped_count = failed
-		sync_job.message = message
-		sync_job.save()
-
-	def log_sync_record(self, sync_job_id, household_details, operation_type, status_code, message=None, error_message=None):
-		self.print_debug(f"[RECORD] Job={sync_job_id} HH={household_details.get('household_number')} Status={status_code}")
-		SyncJobRecord.objects.create(
-			job_id=sync_job_id,
-			avni_uuid=household_details.get("avni_uuid"),
-			operation=operation_type_mapping.get(str(operation_type)),
-			status=status_type_mapping.get(str(status_code)),
-			household=household_details.get("household_record"),
-			message=message,
-			error_message=error_message
-		)
 
 	# ---------- AVNI API HELPERS FOR ENCOUNTER  ----------
 
@@ -308,10 +237,10 @@ class AvniDirectEncounterSync(avni_sync):
    
 	def Save_Direct_Encounter_Data(self,encounter_name,date=None, triggered_by="Admin_User"):
 		self.print_debug(f"[ENCOUNTER] {encounter_name} encounter sync started")
-		module_id = mapping_encounter_type[encounter_name]
+		module_id = AvniBaseSync.mapping_module_type[encounter_name]
 		sync_job = self.start_sync_job(module_id, triggered_by)	
 		if not date: 
-			date = self.get_latest_modified_date(mapping_encounter_type[encounter_name])
+			date = self.get_latest_modified_date(AvniBaseSync.mapping_module_type[encounter_name])
 		pages, path = self.fetch_encounter_pages(encounter_name, date)
 		self.print_debug(f"Saving {encounter_name} data for {pages} pages.")
 		total = success = failed = skipped = 0

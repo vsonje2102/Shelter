@@ -10,5 +10,10 @@
   "scripts": {},
   "devDependencies": {
     "amazon-cognito-identity-js": "^1.28.0"
+  },
+  "dependencies": {
+    "@googlemaps/js-api-loader": "^2.0.2",
+    "@tmcw/togeojson": "^7.1.2",
+    "tokml": "^0.4.0"
   }
 }

@@ -7,7 +7,28 @@
  *   5. RIM data
  */
 //Admin, Electoral, Slum map variables
-let length_of_components = {"Dambar road":75140, "Cement/Concrete":34648, "Interlocking":24264, "Kharanja":20767, "Kutcha road":96744, "Existing Drainage Line":383, "Location of Kutcha Open Nali (Gutter)":5266, "Location of Pucca Closed Nali (Gutter)":5581, "Location of Pucca Open Nali (Gutter)":59665, "Location of Nahar":23136, "Location of Nala":6907};
+let LENGTH_BY_SLUM = {
+	1971: {
+		"Dambar road":75140,
+		"Cement/Concrete":34648,
+		"Interlocking":24264,
+		"Kharanja":20767,
+		"Kutcha road":96744,
+		"Existing Drainage Line":383,
+		"Location of Kutcha Open Nali (Gutter)":5266,
+		"Location of Pucca Closed Nali (Gutter)":5581,
+		"Location of Pucca Open Nali (Gutter)":59665,
+		"Location of Nahar":23136,
+		"Location of Nala":6907
+	},
+	1972: {
+		"Dambar road":53734,
+		"Cement/Concrete":35029,
+		"Interlocking":15052,
+		"Kharanja":11803,
+		"Kutcha road":65340
+	}
+};
 let WARDLEVEL = ["AdministrativeWard",
                  "ElectoralWard",
                  "Slum"];
@@ -337,12 +358,8 @@ function generate_filter(globalJsonData, slumID, result){
         $.each(v, function(k1, v1) {
             let chkcolor = v1['blob']['polycolor'];
             inner_panel_component_value = Object.keys(globalJsonData).length > 0 ? globalJsonData[k1] : k1;
-            let child_length = null;
-            if (k1 in length_of_components){
-                child_length = length_of_components[k1] + " mtr";
-            }else{
-                child_length = v1['child'].length;
-            };
+            child_length = (LENGTH_BY_SLUM[slumID] && LENGTH_BY_SLUM[slumID][k1]) ? LENGTH_BY_SLUM[slumID][k1] + " mtr" : v1['child'].length;
+
             let icon = v1['icon'] ?? "Not specified";
             panel_component += '<div name="div_group" >' + '&nbsp;&nbsp;&nbsp;' +
                                  '<input name="chk1" class="chk" style="background:'+chkcolor+';background-color:' + chkcolor + '; " selection="' + k + '" component_type="' + v1['type'] + '" type="checkbox" value="' + k1 + '" onclick="checkSingleGroup(this);" >' +

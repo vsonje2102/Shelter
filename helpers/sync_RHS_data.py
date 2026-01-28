@@ -1,41 +1,75 @@
-from graphs.sync_avni_data import avni_sync
+from helpers.sync_base import AvniBaseSync
 from graphs.models import *
+from helpers.models import *
 import requests
 import json
 from datetime import timedelta
 
-class AvniSyncRHSData(avni_sync):
-    def SaveRhsData(self,subject_type):  # checked
-        pages, path = self.create_registrationdata_url(subject_type)    
-        all_records = []
-        for ij in range(pages):
-            send_request = requests.get(self.base_url + path + '&page=' + str(ij), headers={'AUTH-TOKEN': self.get_cognito_token()})
-            get_HH_data = json.loads(send_request.text)['content']
-            for i in get_HH_data:
-                if not (i['Voided']):
-                    self.registration_data(i)
-                else:
-                    print("Record is voided")
-            print(f"Page {ij+1} of {pages} processed.")
 
+class AvniSyncRHSData(AvniBaseSync):
+
+    def SaveRhsData(self, subject_type,date=None,triggered_by="Admin_User"):  # checked
+        self.print_debug(f"[RHS SYNC] Starting RHS data sync for subject type: {subject_type}")
+        module_id = AvniBaseSync.mapping_module_type[subject_type]
+        sync_job = self.start_sync_job(module_id=module_id, triggered_by=triggered_by)  
+        if not date:
+            date = self.get_latest_modified_date(module_id=module_id)
+        else:
+            date = date.strftime('%Y-%m-%dT00:00:00.000Z')
+        pages, path = self.create_registrationdata_url(subject_type,date)
+        total = success = failed = skipped = 0
+        try:
+            for ij in range(pages):
+                self.print_debug(f"[RHS SYNC] Processing page {ij+1} of {pages} for subject type: {subject_type}")
+                send_request = requests.get(self.base_url + path + '&page=' + str(ij), headers={'AUTH-TOKEN': self.get_cognito_token()})
+                get_HH_data = json.loads(send_request.text)['content']
+                for i in get_HH_data:
+                    total += 1
+                    if not (i['Voided']):
+                        
+                        self.registration_data(i,sync_job.id)
+                    else:
+                        skipped += 1
+                        SyncJobRecord.objects.create(
+							job_id=sync_job.id,
+							avni_uuid=i['ID'],
+							operation='SKIPPED',
+							status='SKIPPED',
+							message='Record is voided'
+						)
+                        self.print_debug("Record is voided")
+                self.print_debug(f"Page {ij+1} of {pages} processed.")
+        # -------- MANUAL ABORT (Ctrl+C) --------
+        except KeyboardInterrupt:
+            self.print_debug("[ABORTED] Job aborted manually (Ctrl+C)")
+            self.finish_sync_job(sync_job, "ABORTED", total, success, failed, "Job aborted manually by user (Ctrl+C)")
+            raise
+        
+        # -------- ABNORMAL TERMINATION --------
+        except BaseException as e:
+            self.print_debug(f"[ABORTED] Job aborted abnormally: {e}")
+            self.finish_sync_job(sync_job,"ABORTED",total,success,failed,f"Job aborted abnormally: {str(e)}")
+            raise
+        
+        # -------- APPLICATION ERROR --------
+        except Exception as e:
+            self.print_debug(f"[ERROR] Water sync failed: {e}")
+            self.finish_sync_job(sync_job, "FAILED", total, success, failed, str(e)) 
+                   
     # This function is used to create rhs data url when we sync data page wise.
-    def create_registrationdata_url(self,subject_type):  # checked
-        names = ["Banthara Town", "Mohanlalganj City"]
-        if subject_type == "Structure":
-            obj = HouseholdData.objects.filter(city__name__city_name__in=names).order_by('-submission_date').first()
-        elif subject_type == "Household":
-            obj = HouseholdData.objects.exclude(city__name__city_name__in=names).order_by('-submission_date').first()
-
-        latest_date = obj.submission_date + timedelta(days=1)
+    def create_registrationdata_url(self,subject_type,latest_date):  # checked
+        self.print_debug(f"[RHS SYNC] Creating RHS data URL for subject type: {subject_type} from date: {latest_date}")
+        latest_date = latest_date - timedelta(days=1)
         latest_date = latest_date.strftime('%Y-%m-%dT00:00:00.000Z')
-
+        self.print_debug(f"[RHS SYNC] Creating RHS data URL for subject type: {subject_type} from date: {latest_date}")
         household_path = 'api/subjects?lastModifiedDateTime=' + latest_date + '&subjectType=' + subject_type
         result = requests.get(self.base_url + household_path, headers={'AUTH-TOKEN': self.get_cognito_token()})
         get_text = json.loads(result.text)['content']
         pages = json.loads(result.text)['totalPages']
+        self.print_debug(f"[RHS SYNC] Created RHS data URL for subject type: {subject_type} with {pages} pages to fetch.")
         return pages, household_path
 
-    def registration_data(self, HH_data):  # checked
+    def registration_data(self, HH_data,sync_job_id):  # checked
         final_rhs_data = {}
         rhs_from_avni = HH_data['observations']
         if rhs_from_avni.get('Functioning of the structure') == "Shop":
@@ -49,7 +83,7 @@ class AvniSyncRHSData(avni_sync):
             household_number = str(int(value))  # works if it's pure digits
         except ValueError:
             household_number = value           # fallback for things like "123A"
-        print(f"Household number is {household_number}")
+        self.print_debug(f"Household number is {household_number}")
         
         created_date = HH_data['Registration date']
         submission_date = (HH_data['audit']['Last modified at'])  # use last modf date
@@ -59,6 +93,7 @@ class AvniSyncRHSData(avni_sync):
             check_record = HouseholdData.objects.filter(household_number=household_number, city_id=city_id,
                                                         slum_id=slum_id)
             if not check_record:
+                self.log_sync_record()
                 rhs_data = {}
                 final_rhs_data = self.map_rhs_key(rhs_data, rhs_from_avni)
                 if final_rhs_data.get('Do you have a toilet at home?') == "Yes":

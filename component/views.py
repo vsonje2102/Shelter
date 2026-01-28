@@ -22,7 +22,7 @@ from django.core.exceptions import PermissionDenied
 from concurrent.futures import ThreadPoolExecutor
 import json
 
-slum_list = ['223', '1925', '1923', '1927', '1062', '1050', '1061', '1061', '1914', '763', '29', '672', '525', '686', '546', '547', '572', '529', '1363', '175', '514', '760', '639', '672', '820', '1026', '1008', '1169', '1639', '1644', '1647', '1171', '1645', '1170', '1640', '1641', '1136', '1164', '1137', '1642', '1142', '1069', '1026', '1034', '1012', '1048', '1050', '1054', '1057', '1119', '1020', '1030', '1028', '1057', '1652', '1283', '1288', '1095', '1096', '1097', '1099', '1100', '1101', '1098', '1104', '1107', '1111', '1079', '1080', '1342', '1083', '1672', '1673', '1085', '1086', '1087', '1077', '1091', '1092', '1665', '1081', '1082', '1338', '1084', '1074', '1340', '1350', '1088', '1089', '1075', '1076', '1090', '1093', '1344', '1094', '1349', '1102', '1103', '1666', '1105', '1106', '1343', '1108', '1109', '1346', '1078', '1112', '1115', '1116', '1113', '1341', '1117', '1339', '1110', '1375', '1259', '1198', '1293', '1200', '1288', '1283', '1971','1929']
+slum_list = ['223', '1925', '1923', '1927', '1062', '1050', '1061', '1061', '1914', '763', '29', '672', '525', '686', '546', '547', '572', '529', '1363', '175', '514', '760', '639', '672', '820', '1026', '1008', '1169', '1639', '1644', '1647', '1171', '1645', '1170', '1640', '1641', '1136', '1164', '1137', '1642', '1142', '1069', '1026', '1034', '1012', '1048', '1050', '1054', '1057', '1119', '1020', '1030', '1028', '1057', '1652', '1283', '1288', '1095', '1096', '1097', '1099', '1100', '1101', '1098', '1104', '1107', '1111', '1079', '1080', '1342', '1083', '1672', '1673', '1085', '1086', '1087', '1077', '1091', '1092', '1665', '1081', '1082', '1338', '1084', '1074', '1340', '1350', '1088', '1089', '1075', '1076', '1090', '1093', '1344', '1094', '1349', '1102', '1103', '1666', '1105', '1106', '1343', '1108', '1109', '1346', '1078', '1112', '1115', '1116', '1113', '1341', '1117', '1339', '1110', '1375', '1259', '1198', '1293', '1200', '1288', '1283', '1971','1929','1972']
 
 @staff_member_required
 @permission_required('component.can_upload_KML', raise_exception=True)
@@ -51,11 +51,12 @@ def kml_upload(request):
     return render(request, 'kml_upload.html', context_data)
 
 #@user_passes_test(lambda u: u.is_superuser)
-# @access_right
+# @access_rightFunctioning of the structure
 def get_component(request, slum_id):
     '''Get component/filter/sponsor data for the selected slum.
        Here sponsor data is fetch according to user role access rights
     '''
+
     slum = get_object_or_404(Slum, pk=slum_id)
     city_name = list(Slum.objects.filter(id = slum.id).values_list('electoral_ward__administrative_ward__city__name__city_name', flat = True))[0]
     sponsor_slum_count = 0
@@ -94,6 +95,8 @@ def get_component(request, slum_id):
     sponsor_houses = []
     #Iterate through each filter and assign answers to child if available
     for metad in metadata:
+        print("Processing Filter:", metad.name, "with code:", metad.code)
+
         component = {}
         component['name'] = metad.name
         if component['name'] == 'Slum boundary' and slum_id in ['1971','1972']:
@@ -118,8 +121,9 @@ def get_component(request, slum_id):
         #Filter
         elif metad.type == 'F' and metad.code != "":
             field = metad.code.split(':')
-            # print("Processing Filter:", metad.name, "with code:", metad.code)
-            # print("Field Details:", field)
+            # if field == "Shop":
+            print("Processing Filter:", metad.name, "with code:", metad.code)
+            print("Field Details:", field)
             
             if city_name != 'Kolhapur' and field[0] == 'If individual water connection, type of water meter?':
                 pass
