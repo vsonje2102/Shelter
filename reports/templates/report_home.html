@@ -11,15 +11,15 @@
 <div class="reports-tabs-bar">
 
 	<div class="reports-tab active" data-report="slum_rim">
-		Slum RIM
+		Slum Factsheet
+	</div>
+
+	<div class="reports-tab" data-report="individual_family">
+		Family Factsheet
 	</div>
 
 	<div class="reports-tab" data-report="donor_report">
 		Donor Report
-	</div>
-
-	<div class="reports-tab" data-report="individual_family">
-		Individual & Family
 	</div>
 
 </div>
@@ -226,10 +226,50 @@
 </div>
 
 
-<!-- ================= UPCOMING ================= -->
+<!-- ================= FAMILY FACTSHEET ================= -->
+<!-- Same server call the old Factsheet report page used (master:familyrportgenerate): slum + house number in, PDF link out. -->
 <div id="individual_family" class="report-section" style="display:none;">
 	<div class="report-container">
-		<div class="upcoming">🚧 Individual & Family – Upcoming</div>
+
+		<div class="report-header">
+			<h1>Family Factsheet</h1>
+			<p>Pick a slum and a house number to open that family's factsheet</p>
+		</div>
+
+		<form id="familyForm">
+
+			<div class="report-row slum-search">
+				<label for="familySlumInput">Search Slum</label>
+				<div class="slum-search-control">
+					<input type="text" id="familySlumInput" autocomplete="off" placeholder="Type a slum name">
+					<div id="familySlumResults" class="slum-search-results"></div>
+					<div id="familySlumChosen" class="slum-search-chosen" style="display:none;"></div>
+				</div>
+			</div>
+
+			<div class="report-row">
+				<label for="familyHouseNo">House No</label>
+				<input type="text" id="familyHouseNo" inputmode="numeric" autocomplete="off" placeholder="e.g. 42">
+			</div>
+
+			<div class="report-actions">
+				<button type="button" id="familyButton" disabled>
+					Generate Family Factsheet
+				</button>
+			</div>
+
+			<p id="familyMessage" class="family-message" role="status"></p>
+
+			<div class="notes">
+				<p>
+					<strong>Note:</strong>
+					The family factsheet opens as a PDF in a new tab. If nothing opens,
+					allow pop-ups for this site or use the link that appears here.
+				</p>
+			</div>
+
+		</form>
+
 	</div>
 </div>
 

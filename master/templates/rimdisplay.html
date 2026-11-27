@@ -48,8 +48,10 @@
     
       font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       color: var(--rim-ink);
-      margin: 0 20px 16px;
-      min-height: calc(100vh - 88px);
+      /* fills the card exactly, so the page itself does not scroll; the table area takes whatever is left */
+      margin: 0;
+      height: calc(100vh - var(--shell-top, 82px) - 150px);
+      min-height: 560px;
       display: flex;
       flex-direction: column;
     }
@@ -58,7 +60,10 @@
       box-sizing: border-box;
     }
     
-    /* ---------- Page header ---------- */
+    /* ---------- Page header ----------
+       The shared title row already names the page, so only the record count and the buttons show here. */
+    .rim-header-title { display: none; }
+    .rim-header { justify-content: flex-end; }
     .rim-header {
       display: flex;
       align-items: center;
@@ -295,16 +300,16 @@
       min-height: 40px;
       box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     }
-    .rim-btn-primary {
-      background: rgb(193, 229, 233);
+    .rim-btn-primary, a.rim-btn-primary:link, a.rim-btn-primary:visited {
+      background: #3d6a96;
       color: #fff;
-      border-color: #2563eb;
+      border-color: #3d6a96;
       font-weight: 700;
     }
     .rim-btn-primary:hover {
-      background: #1d4ed8;
+      background: #345c83;
       color: #fff;
-      border-color: #1d4ed8;
+      border-color: #345c83;
     }
     .rim-btn-ghost {
       background: var(--rim-surface);
@@ -378,11 +383,10 @@
       min-height: 0;
       flex: 1 1 auto;
     }
+    /* the one place this page scrolls: the title row, filters and pinned slum-name column stay put */
     .rim-table-scroll {
       overflow: auto;
-      height: calc(100vh - 304px);
-      max-height: calc(100vh - 304px);
-      min-height: 380px;
+      min-height: 0;
       flex: 1 1 auto;
     }
     
@@ -419,6 +423,10 @@
       font-weight: 700;
       text-align: center;
       color: #fff;
+    }
+    .rim-table thead tr.rim-group-row th.rim-col-plain {
+      background: #f3f4f6;
+      color: var(--rim-ink);
     }
     .rim-table thead tr.rim-group-row th.rim-g-general {
       background: var(--rim-general);
@@ -463,6 +471,7 @@
     /* pinned identity columns (checkbox / slum name / population) */
     .rim-table th.rim-pin,
     .rim-table td.rim-pin {
+      position: -webkit-sticky;
       position: sticky;
       background: var(--rim-surface);
       z-index: 2;
@@ -797,7 +806,7 @@
               <tr class="rim-group-row">
                 <th class="rim-pin rim-col-check" rowspan="2"></th>
                 <th class="rim-pin rim-col-name" rowspan="2">Slum name</th>
-                <th rowspan="2">
+                <th class="rim-col-plain" rowspan="2">
                   Approx.<br />population
                 </th>
 

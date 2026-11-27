@@ -1,10 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap');
 
 :root {
-    --ku-blue: #1d4ed8;
-    --ku-blue-light: #eff6ff;
-    --ku-blue-mid: #dbeafe;
-    --ku-blue-dark: #1e3a8a;
+    --ku-blue: #3d6a96;
+    --ku-blue-light: #eef3f8;
+    --ku-blue-mid: #d9e4ef;
+    --ku-blue-dark: #2f3b4a;
     --ku-green: #065f46;
     --ku-green-bg: #ecfdf5;
     --ku-green-bd: #a7f3d0;
@@ -19,8 +19,8 @@
     --ku-g600: #4b5563;
     --ku-g700: #374151;
     --ku-g900: #111827;
-    --ku-violet: #6d28d9;
-    --ku-violet-mid: #ede9fe;
+    --ku-violet: #3d6a96;
+    --ku-violet-mid: #eef3f8;
     --ku-amber: #92400e;
     --ku-amber-bg: #fffbeb;
     --ku-amber-bd: #fde68a;
@@ -278,7 +278,7 @@ input.ku-input[type='file'] {
 }
 
 .ku-btn:hover {
-    background: #1d40b0;
+    background: #345c83;
 }
 
 .ku-btn:active {
@@ -980,7 +980,7 @@ input.ku-input[type='file'] {
 }
 
 .ku-btn-primary:hover {
-    background: #1d40b0;
+    background: #345c83;
 }
 
 .ku-modal-loading {

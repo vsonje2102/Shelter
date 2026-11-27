@@ -1,87 +1,113 @@
-{% extends 'admin/base_site.html' %}
-{% load i18n %}
+{% extends "admin/base_site.html" %}
+{% load static %}
 
-{% block breadcrumbs %}
-  <style>
-    .home-hero {
-      min-height: calc(100vh - 140px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 16px;
-    }
-    
-    .home-hero-card {
-      width: 100%;
-      max-width: 520px;
-      text-align: center;
-      background: #ffffff;
-      border: 1px solid #e5e7eb;
-      border-radius: 18px;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
-      padding: 40px 24px;
-    }
-    
-    .home-hero-logo {
-      display: block;
-      width: min(220px, 72%);
-      height: auto;
-      margin: 0 auto 18px;
-    }
-    
-    .home-hero-title {
-      margin: 0;
-      font-size: 34px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-    
-    .home-hero-subtitle {
-      margin: 12px 0 0;
-      font-size: 16px;
-      line-height: 1.6;
-      color: #475569;
-    }
-    
-    @media (max-width: 767px) {
-      .home-hero {
-        min-height: calc(100vh - 110px);
-        padding: 20px 12px;
-      }
-    
-      .home-hero-card {
-        padding: 28px 18px;
-        border-radius: 14px;
-      }
-    
-      .home-hero-title {
-        font-size: 28px;
-        line-height: 1.2;
-      }
-    
-      .home-hero-subtitle {
-        font-size: 14px;
-      }
-    
-      .home-hero-logo {
-        width: min(180px, 68%);
-        margin-bottom: 14px;
-      }
-    }
-  </style>
+{% block bodyclass %}home-body{% endblock %}
+{% block extrastyle %}{% include "home/styles.html" %}{% endblock %}
 
-  <div class="home-hero">
-    <div class="home-hero-card">
-      <h1 class="home-hero-title">Shelter Associates</h1>
-      <p class="home-hero-subtitle">Use the admin menu to navigate reports, analytics, maps, and upload tools.</p>
+{% block page_tools %}
+  <div class="home-controls">
+    <form method="get" action="" class="home-filters" id="home-filters">
+      <div class="home-seg" aria-label="Cities">
+        {% if has_my_cities %}<a class="home-seg-item{% if chosen == 'mine' %} is-on{% endif %}" href="?city=mine&amp;period={{ period.slug }}">My cities</a>{% endif %}
+        <a class="home-seg-item{% if chosen == 'all' %} is-on{% endif %}" href="?city=all&amp;period={{ period.slug }}">All cities</a>
+        <select name="city" class="home-seg-item{% if single_city %} is-on{% endif %}" aria-label="One city">
+          <option value="{{ chosen }}"{% if not single_city %} selected{% endif %}>One city&hellip;</option>
+          {% for city in cities %}
+            <option value="{{ city.id }}"{% if single_city == city.id %} selected{% endif %}>{{ city.name.city_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="home-seg" aria-label="Period">
+        <select name="period" class="home-seg-item{% if not period.current %} is-on{% endif %}" aria-label="Period">
+          {% for option in periods %}
+            <option value="{{ option.slug }}"{% if option.slug == period.slug %} selected{% endif %}>{{ option.label }}{% if option.current %} (current){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <noscript><button type="submit" class="home-more">Show</button></noscript>
+    </form>
+    <div class="home-slider" id="home-slider" hidden>
+      <button type="button" class="home-arrow" id="home-back" aria-label="Previous insights"><svg class="side-icon" aria-hidden="true"><use href="#icon-chevron-left"></use></svg></button>
+      <div class="home-dots" id="home-pages" role="group" aria-label="Page"></div>
+      <button type="button" class="home-more" id="home-more">More insights &rarr;</button>
     </div>
   </div>
 {% endblock %}
 
 {% block content %}
+{# Every card starts as a placeholder (home-bone) and is swapped for the real one when its part arrives. #}
+<div class="home-page" id="home-page">
+  <div class="home-panel" id="home-panel" data-part-url="{% url 'master:insight_part' 'PART' %}?city={{ chosen }}&amp;period={{ period.slug }}">
+    <div class="home-bands" id="home-bands">
+      <div class="home-band home-band--kpis">
+        <div class="home-card home-bone" data-slot="kpi-completed" data-part="toilets"></div>
+        <div class="home-card home-bone" data-slot="kpi-agreed" data-part="toilets"></div>
+        <div class="home-card home-bone" data-slot="kpi-under" data-part="toilets"></div>
+        <div class="home-card home-bone" data-slot="kpi-build" data-part="toilets"></div>
+        <div class="home-card home-bone" data-slot="kpi-mobilisation" data-part="mobilisation"></div>
+      </div>
 
+      {# The rest of the first screen: two wide cards on the left, a column of three on the right. #}
+      <div class="home-band" data-page-end>
+        <div class="home-side home-c8">
+          <div class="home-card">
+            <div class="home-card-head"><div class="home-eyebrow">Where work is happening</div></div>
+            <div class="home-card-body home-card-body--grids">
+              <div class="home-grid-block home-bone" data-slot="heat-toilets" data-part="toilets"></div>
+              <div class="home-grid-block home-bone" data-slot="heat-mhm" data-part="mhm"></div>
+            </div>
+          </div>
+          <div class="home-card">
+            <div class="home-card-head"><div class="home-eyebrow">Delivery momentum</div></div>
+            <div class="home-card-body home-card-body--plots">
+              <div class="home-plot-block home-bone" data-slot="momentum-toilets" data-part="toilets"></div>
+              <div class="home-plot-block home-bone" data-slot="momentum-mhm" data-part="mhm"></div>
+            </div>
+          </div>
+        </div>
+        <div class="home-side home-c4">
+          <div class="home-card home-bone" data-slot="kpi-cups" data-part="mhm"></div>
+          <div class="home-card home-bone" data-slot="kpi-need" data-part="survey"></div>
+          <div class="home-card">
+            <div class="home-card-head"><div class="home-eyebrow">Vulnerable members reached, {{ period.label }}</div></div>
+            <div class="home-card-body home-card-body--impact">
+              <div class="home-impact-block home-bone" data-slot="impact" data-part="people"></div>
+              <div class="home-facts home-bone" data-slot="impact-funders" data-part="funders"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-band">
+        <div class="home-card home-c7 home-bone" data-slot="scope" data-part="survey"></div>
+        <div class="home-card home-c5 home-bone" data-slot="progress" data-part="toilets"></div>
+      </div>
+
+      <div class="home-band">
+        <div class="home-card home-c6 home-bone" data-slot="ladder" data-part="survey"></div>
+        <div class="home-card home-c6 home-bone" data-slot="stages" data-part="toilets"></div>
+      </div>
+
+      <div class="home-band">
+        <div class="home-card home-c4 home-bone" data-slot="after" data-part="toilets"></div>
+        <div class="home-card home-c4 home-bone" data-slot="cancelled" data-part="toilets"></div>
+        <div class="home-card home-c4 home-bone" data-slot="gaps" data-part="toilets"></div>
+      </div>
+
+      <div class="home-band" data-grow="3">
+        <div class="home-card home-c8 home-bone" data-slot="synced" data-part="synced"></div>
+        <div class="home-card home-c4 home-bone" data-slot="funders" data-part="funders"></div>
+      </div>
+    </div>
+
+    {# First-screen parts already worked out arrive with the page; the script fetches the rest as their slide opens. #}
+    {% for part in parts %}{% if part.figures %}
+      <div class="home-ready" data-ready="{{ part.name }}" hidden>{% include part.template with figures=part.figures %}</div>
+    {% endif %}{% endfor %}
+  </div>
+</div>
+<div class="home-tip" id="home-tip"></div>
+<script src="{% static 'js/home_insights.js' %}?v={{ script_version }}" defer></script>
 {% endblock %}
 
-{% block sidebar %}
-
-{% endblock %}
+{% block sidebar %}{% endblock %}

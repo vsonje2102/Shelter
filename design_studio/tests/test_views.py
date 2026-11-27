@@ -53,7 +53,7 @@ class AccessTests(DesignStudioTestCase):
 
     def test_member_sees_the_menu_link(self):
         page = self.client.get(reverse("design_studio:home"))
-        self.assertContains(page, 'href="{}">Design Studio'.format(reverse("design_studio:home")))
+        self.assertContains(page, 'href="{}" title="Design Studio"'.format(reverse("design_studio:home")))
         self.assertContains(page, "<title>SA | Design Studio</title>")
         self.assertContains(page, 'rel="icon" type="image/png" href="/static/images/sa-icon.png"')
 

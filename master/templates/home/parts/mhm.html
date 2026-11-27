@@ -1,0 +1,43 @@
+{% load indian_numbers %}
+<div data-slot="kpi-cups" class="home-card home-kpi">
+  <div class="home-kpi-label">
+    <span class="home-chip home-chip--s3">
+      <svg class="side-icon" aria-hidden="true">
+        <use href="#icon-check"></use>
+      </svg>
+    </span><span class="home-kpi-name">Menstrual cups<span class="home-when">, {{ figures.period.label }}</span></span>
+  </div>
+  {% with tile=figures.cups %}
+    <div class="home-kpi-top">
+      <span class="home-num">{{ tile.value|indian }} <small>cups given</small></span>
+      {% if tile.change is not None %}
+        {% if tile.change >= 0 %}
+          <span class="home-pill home-pill--ok">&#9650; {{ tile.change|indian }}%</span>
+        {% else %}
+          <span class="home-pill home-pill--bad">&#9660; {{ tile.change|cut:'-' }}%</span>
+        {% endif %}
+      {% endif %}
+    </div>
+  {% endwith %}
+  <div class="home-facts">
+    <span><b>{{ figures.followups.value|indian }}</b> follow-up{{ figures.followups.value|pluralize }} done</span>
+    {% if figures.using_percent is not None %}
+      <span><b>{{ figures.using_percent }}%</b> cup in use</span>
+    {% endif %}
+    <span><b>{{ figures.waiting|indian }}</b> Menstruating women</span>
+  </div>
+</div>
+<div data-slot="heat-mhm" class="home-grid-block">
+  <h2 class="home-h2">Women enrolled in the menstrual hygiene programme <span class="home-h2-note">{{ figures.heat.finding }}</span></h2>
+  <div class="home-heat home-heat--mhm" id="home-heat-mhm"></div>
+</div>
+<div data-slot="momentum-mhm" class="home-plot-block">
+  <div class="home-legend">
+    <strong>Menstrual cups</strong>
+    <span><i class="home-key home-bg-s3"></i>Cups given</span>
+    <span><i class="home-key home-key--line home-bg-s2"></i>Follow-up visits</span>
+  </div>
+  <div class="home-plot" id="home-momentum-mhm"></div>
+  <p class="home-plot-note">{{ figures.momentum.finding }}</p>
+</div>
+{{ figures|json_script:'home-data-mhm' }}

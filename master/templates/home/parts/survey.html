@@ -1,0 +1,63 @@
+{% load indian_numbers %}
+<div data-slot="ladder" class="home-card home-c6">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Sanitation ladder</div>
+    <div class="home-finding">{{ figures.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    {% with tile=figures.open %}
+    <div class="home-stat">
+      <span class="home-num">{% if tile.cities_with_data %}{{ tile.households|indian }}{% else %}&ndash;{% endif %}</span>
+      <span class="home-stat-label">households still defecating in the open{% if tile.percent is not None %}, {{ tile.percent }}% of those surveyed{% endif %}</span>
+      <span class="home-pill">{{ tile.cities_with_data }} of {{ tile.cities }} cit{{ tile.cities|pluralize:"y,ies" }}</span>
+    </div>
+    {% endwith %}
+    <div class="home-legend">
+      <span><i class="home-key home-bg-s1"></i>Own</span>
+      <span><i class="home-key home-bg-s2"></i>Shared</span>
+      <span><i class="home-key home-bg-s3"></i>Community</span>
+      <span><i class="home-key home-bg-s4"></i>Open defecation</span>
+      <span><i class="home-key home-bg-other"></i>Other</span>
+    </div>
+    <div class="home-ladder" id="home-ladder"></div>
+  </div>
+  <div class="home-card-foot">
+    Household survey{% if figures.as_of %}, summary refreshed {{ figures.as_of }}{% endif %}{% if figures.no_data %}
+    &middot; <span title="{{ figures.no_data|join:', ' }}">no data for {{ figures.no_data|length }} cit{{ figures.no_data|length|pluralize:"y,ies" }}</span>{% endif %}
+  </div>
+</div>
+<div data-slot="kpi-need" class="home-card home-kpi">
+  <div class="home-kpi-label"><span class="home-chip home-chip--s4"><svg class="side-icon" aria-hidden="true"><use href="#icon-home"></use></svg></span><span class="home-kpi-name">Households without a toilet of their own</span></div>
+  {% with tile=figures.need %}
+  <div class="home-kpi-top">
+    <span class="home-num">{% if tile.cities_with_data %}{{ tile.households|indian }}{% else %}&ndash;{% endif %} <small>households</small></span>
+    <span class="home-pill">{{ tile.cities_with_data }} of {{ tile.cities }} cit{{ tile.cities|pluralize:"y,ies" }} surveyed</span>
+  </div>
+  <div class="home-facts">
+    {% if tile.cities_with_data %}
+      <span><b>{{ tile.community|indian }}</b> community toilet</span>
+      <span><b>{{ tile.open|indian }}</b> open defecation</span>
+    {% else %}
+      <span>No household survey summary for this selection</span>
+    {% endif %}
+  </div>
+  {% endwith %}
+</div>
+<div data-slot="scope" class="home-card home-c7">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Scope of work, by city</div>
+    <div class="home-finding">{{ figures.scope.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    <div class="home-legend">
+      <span><i class="home-key home-bg-s3"></i>Use a community toilet <strong>{{ figures.need.community|indian }}</strong></span>
+      <span><i class="home-key home-bg-s4"></i>Defecate in the open <strong>{{ figures.need.open|indian }}</strong></span>
+    </div>
+    <div class="home-progress home-progress--scope" id="home-scope"></div>
+  </div>
+  <div class="home-card-foot">
+    Household survey{% if figures.as_of %}, summary refreshed {{ figures.as_of }}{% endif %} &middot; built = toilets completed with us, all years{% if figures.no_data %}
+    &middot; <span title="{{ figures.no_data|join:', ' }}">no survey data for {{ figures.no_data|length }} cit{{ figures.no_data|length|pluralize:"y,ies" }}</span>{% endif %}
+  </div>
+</div>
+{{ figures|json_script:"home-data-survey" }}

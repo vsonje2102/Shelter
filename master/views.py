@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """The Django Views Page for master app"""
 import json
+import os
 import logging
 from django.urls import reverse
 from django.contrib.admin.views.decorators import staff_member_required
@@ -31,7 +32,9 @@ from django.contrib.auth import *
 from django.contrib.auth.models import User, Group
 from component.cipher import *
 from component.view3d import can_view_3d
-from utils.utils_permission import access_right
+from utils.utils_permission import access_right, has_mastersheet_access
+from master import home_insights
+from django.contrib.staticfiles import finders
 import urllib
 import numpy as np
 from django.http import Http404
@@ -41,12 +44,94 @@ from django.db.models import Avg
 
 logger = logging.getLogger(__name__)
 
+def home_selection(request):
+    """The cities and financial year a dashboard request asks for; anything unrecognised falls back to the default."""
+    cities = City.objects.select_related("name").order_by("name__city_name")
+    mine = home_insights.user_city_ids(request.user)
+    default = "mine" if mine else "all"
+    chosen = request.GET.get("city", default)
+    single_city = None
+    if chosen == "mine" and mine:
+        city_ids = mine
+    elif chosen == "all":
+        city_ids = None
+    elif chosen in {str(city.id) for city in cities}:
+        single_city = int(chosen)
+        city_ids = [single_city]
+    else:
+        chosen, city_ids = default, mine or None
+    periods = home_insights.periods()
+    wanted = request.GET.get("period", "")
+    return {
+        "cities": cities,
+        "chosen": chosen,
+        "single_city": single_city,
+        "city_ids": city_ids,
+        "has_my_cities": bool(mine),
+        "periods": periods,
+        "period": next((period for period in periods if period.slug == wanted), periods[0]),
+        "can_open_lists": has_mastersheet_access(request.user),
+    }
+
+
+def script_version(path):
+    """A number that changes whenever the static file does, so a browser never pairs a new page with an old script."""
+    found = finders.find(path)
+    return int(os.path.getmtime(found)) if found else 0
+
+
 @staff_member_required
 def index(request):
-    """Renders the index template in browser"""
-    template = loader.get_template('index.html')
-    context ={ 'site_url':'/'}
-    return render(request, 'index.html', context)
+    """Staff home page: programme insights, aggregates only.
+
+    The page is a frame of placeholder cards. First-screen parts already worked out are sent with it; the script
+    fetches the others one by one from `insight_part`, and a part only later slides show when its slide is opened.
+    """
+    chosen = home_selection(request)
+    parts = [
+        {"name": part, "template": "home/parts/%s.html" % part,
+         "figures": home_insights.cached_part(part, chosen["city_ids"], chosen["period"])}
+        for part in home_insights.PARTS if part not in home_insights.LATER_PARTS
+    ]
+    return render(request, "index.html", dict(
+        chosen, site_url="/", title="Programme pulse", parts=parts,
+        script_version=script_version("js/home_insights.js")))
+
+
+@staff_member_required
+def insight_part(request, part):
+    """The cards of one part of the dashboard for one selection, worked out now if they were not ready."""
+    if part not in home_insights.PARTS:
+        raise Http404
+    chosen = home_selection(request)
+    figures = home_insights.part_for(part, chosen["city_ids"], chosen["period"])
+    return render(request, "home/parts/%s.html" % part, dict(chosen, figures=figures))
+
+
+@login_required
+def insight_list(request, key):
+    """One "Worth a look" list. Household-level, so mastersheet users only, within their own cities."""
+    if not has_mastersheet_access(request.user):
+        raise PermissionDenied
+    if key not in home_insights.GAPS:
+        raise Http404
+    if request.user.is_superuser:
+        city_ids = list(City.objects.values_list("id", flat=True))
+    else:
+        city_ids = home_insights.user_city_ids(request.user)
+    city = request.GET.get("city", "")
+    if city in {str(city_id) for city_id in city_ids}:
+        city_ids = [int(city)]
+    else:
+        city = ""
+    found = home_insights.gap_rows(key, city_ids)
+    return render(request, "home/insight_list.html", {
+        "title": found["title"][:1].upper() + found["title"][1:],
+        "columns": found["columns"],
+        "page": Paginator(found["rows"], 50).get_page(request.GET.get("page")),
+        "city": city,
+        "limited_to_own_cities": not request.user.is_superuser,
+    })
 
 class SurveyListView(PermissionRequiredMixin, ListView):
     """Renders the Survey View template in browser"""

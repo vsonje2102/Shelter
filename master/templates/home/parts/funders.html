@@ -1,0 +1,19 @@
+{% load indian_numbers %}
+<div data-slot="funders" class="home-card home-c4">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Who made it possible</div>
+    <div class="home-finding">{{ figures.finding }}</div>
+  </div>
+  <div class="home-card-body"><div class="home-rows" id="home-funders"></div></div>
+  <div class="home-card-foot">Toilets completed for the households linked to each funder, all years</div>
+</div>
+<div data-slot="impact-funders" class="home-facts home-facts--line">
+  <span><b>{{ figures.given|indian }}</b> toilets till now</span>
+  {% if figures.rows %}
+    <span><b>{{ figures.funders }}</b> funder{{ figures.funders|pluralize }}</span>
+    <span class="home-extra">top: <b>{{ figures.rows.0.label }}</b> {{ figures.rows.0.count|indian }}</span>
+  {% else %}
+    <span>no funder linked</span>
+  {% endif %}
+</div>
+{{ figures|json_script:"home-data-funders" }}

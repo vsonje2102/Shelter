@@ -1,0 +1,16 @@
+{% load indian_numbers %}
+<div data-slot="impact" class="home-impact-block">
+  <div class="home-kpi-top">
+    <span class="home-num">{{ figures.reached|indian }} <small>vulnerable members reached</small></span>
+    <span class="home-pill">
+      {% if figures.whole %}
+        of {{ figures.recorded|indian }} from members
+      {% else %}
+        {{ figures.ever|indian }}
+      {% endif %}
+    </span>
+  </div>
+  <div class="home-progress home-progress--people" id="home-people"></div>
+  <p class="home-note">Member data is not collected everywhere, and widow or disability was not always asked.</p>
+</div>
+{{ figures|json_script:'home-data-people' }}

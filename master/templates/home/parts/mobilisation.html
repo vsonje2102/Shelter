@@ -1,0 +1,27 @@
+{% load indian_numbers %}
+<div data-slot="kpi-mobilisation" class="home-card home-kpi home-kpi--pop">
+  <div class="home-kpi-label"><span class="home-chip home-chip--s5"><svg class="side-icon" aria-hidden="true"><use href="#icon-users"></use></svg></span><span class="home-kpi-name">Mobilisation activities<span class="home-when">, {{ figures.period.label }}</span></span></div>
+  {% with tile=figures.sessions %}
+  <div class="home-kpi-top">
+    <span class="home-num">{{ tile.value|indian }} <small>sessions</small></span>
+    {% if tile.change is not None %}
+      {% if tile.change >= 0 %}<span class="home-pill home-pill--ok">&#9650; {{ tile.change|indian }}%</span>
+      {% else %}<span class="home-pill home-pill--bad">&#9660; {{ tile.change|cut:"-" }}%</span>{% endif %}
+    {% endif %}
+  </div>
+  <div class="home-delta home-delta--more">
+    <span>{% if tile.previous is not None %}{{ tile.previous|indian }} a year earlier{% else %}All records up to {{ figures.period.upto }}{% endif %}{% if tile.month is not None %} &middot; <strong>{{ tile.month|indian }} this month</strong>{% endif %}</span>
+    {% if figures.activities %}<button type="button" class="home-link" data-open-pop="home-activities-pop" aria-expanded="false">More details &rarr;</button>{% endif %}
+  </div>
+  {% endwith %}
+  {% if figures.activities %}
+    <div class="home-pop" id="home-activities-pop" hidden>
+      <div class="home-pane-head">
+        <h2 class="home-h2">Activities held, {{ figures.period.label }}</h2>
+        <button type="button" class="home-link" data-close-pop>Close</button>
+      </div>
+      <div class="home-rows" id="home-activities"></div>
+    </div>
+  {% endif %}
+</div>
+{{ figures|json_script:"home-data-mobilisation" }}

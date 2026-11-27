@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block bodyclass %}home-body{% endblock %}
+{% block crumbs %}<span class="crumb-sep">&rsaquo;</span><a href="{% url 'master:index' %}">Dashboard</a><span class="crumb-sep">&rsaquo;</span><span class="crumb-current">Worth a look</span>{% endblock %}
+{% block extrastyle %}{% include "home/styles.html" %}{% endblock %}
+
+{% block content %}
+<div class="home-list">
+  <p class="home-sub">
+    {{ page.paginator.count }} row{{ page.paginator.count|pluralize }}.
+    {% if limited_to_own_cities %}Showing the cities you have access to.{% endif %}
+  </p>
+  {% if page.object_list %}
+    <div class="home-list-card"><table class="home-table">
+      <thead><tr>{% for column in columns %}<th>{{ column }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in page.object_list %}
+          <tr>{% for value in row %}<td>{{ value|default_if_none:"" }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+    {% if page.paginator.num_pages > 1 %}
+      <div class="home-pager">
+        {% if page.has_previous %}<a href="?page={{ page.previous_page_number }}{% if city %}&amp;city={{ city }}{% endif %}">&larr; Previous</a>{% endif %}
+        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?page={{ page.next_page_number }}{% if city %}&amp;city={{ city }}{% endif %}">Next &rarr;</a>{% endif %}
+      </div>
+    {% endif %}
+  {% else %}
+    <p class="home-empty">Nothing to show.</p>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}

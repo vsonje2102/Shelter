@@ -1,0 +1,24 @@
+<div data-slot="synced" class="home-card home-c8">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Last synced</div>
+    <div class="home-finding">{{ figures.finding }}</div>
+  </div>
+  <div class="home-card-body home-card-body--table">
+    {% if figures.rows %}
+    <table class="home-table">
+      <thead><tr><th>City</th><th>Household survey</th><th>Follow-up visits</th><th>Toilet construction</th></tr></thead>
+      <tbody>
+        {% for row in figures.rows %}
+          <tr>
+            <td>{{ row.label }}</td>
+            {% for cell in row.cells %}
+              <td title="{{ cell.date }}"><span class="home-date">{{ cell.date }}</span><span class="home-pill{% if cell.state != 'none' %} home-pill--{{ cell.state }}{% endif %}">{{ cell.age }}</span></td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="home-empty">No data for this selection.</p>{% endif %}
+  </div>
+  <div class="home-card-foot">Newest record received from the field, per city</div>
+</div>

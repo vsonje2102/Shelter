@@ -5,7 +5,9 @@
 <html lang="{{ LANGUAGE_CODE|default:"en-us" }}" {% if LANGUAGE_BIDI %}dir="rtl"{% endif %}>
 <head>
 <title>SA | {% block title %}Shelter Associates{% endblock %}</title>
-<link rel="icon" type="image/png" href="{% static "images/sa-icon.png" %}">
+{% if SITE_ENVIRONMENT == "local" %}<link rel="icon" type="image/png" href="{% static "images/sa-icon-local.png" %}">
+{% elif SITE_ENVIRONMENT == "uat" %}<link rel="icon" type="image/png" href="{% static "images/sa-icon-uat.png" %}">
+{% else %}<link rel="icon" type="image/png" href="{% static "images/sa-icon.png" %}">{% endif %}
 <link rel="apple-touch-icon" href="{% static "images/sa-icon-180.png" %}">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 {% block blockbots %}<meta name="robots" content="NONE,NOARCHIVE">{% endblock %}
@@ -19,6 +21,7 @@
 
 <script nonce="{{ csp_nonce }}">window.__admin_media_prefix__ = "{% filter escapejs %}{% static "admin/" %}{% endfilter %}";</script>
 <script nonce="{{ csp_nonce }}">window.__admin_utc_offset__ = "{% filter escapejs %}{% now "Z" %}{% endfilter %}";</script>
+<script nonce="{{ csp_nonce }}">try { if (localStorage.getItem("shelter-nav") === "hidden") document.documentElement.classList.add("nav-hidden"); } catch (e) {}</script>
 <script src="{% static "js/jquery-3.7.1.min.js" %}"></script>
 <script src="{% static "js/csrf.js" %}" data-token="{{ csrf_token }}"></script>
 <script src="{% static "js/bootstrap-3.4.1.js" %}"></script>
@@ -28,166 +31,141 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+:root {
+  --shell-nav: 240px;        /* left menu width */
+  --shell-top: 82px;         /* space the floating top bar takes */
+  --shell-bg: #eef2f6;       /* page background */
+  --shell-blue: #2e5275;     /* left menu */
+  --shell-accent: #3d6a96;   /* buttons, links (the Design Studio blue) */
+  --shell-accent-dark: #345c83;
+  --shell-ink: #2f3b4a;
+  --shell-muted: #7a8494;
+  --shell-line: #e1e6ed;
+}
+
 /* ── Hide Django's own header and remove its spacing ── */
-#header {
-  display: none !important;
-}
-#container {
-  padding-top: 0 !important;
-}
+#header { display: none !important; }
+#container { padding-top: 0 !important; }
+body { background: var(--shell-bg); }
 
-/* ── Kill Django admin's global list bullet styles ── */
-#shelter-nav ul,
-#shelter-nav ul li,
-#mobile-nav ul,
-#mobile-nav ul li,
-.drop-menu,
-.drop-menu li {
-  list-style: none !important;
-  list-style-type: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background-image: none !important;
-}
-#shelter-nav li::before,
-#shelter-nav li::after,
-#mobile-nav li::before,
-#mobile-nav li::after,
-.drop-menu li::before,
-.drop-menu li::after {
-  content: none !important;
-  display: none !important;
-}
-
-/* ── Navbar ── */
+/* ── Left menu ── */
 #shelter-nav {
-  position: fixed; top: 0; left: 0; right: 0;
+  position: fixed; top: 0; left: 0; bottom: 0; width: var(--shell-nav);
   z-index: 9999;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  display: flex; align-items: center;
-  height: 52px; padding: 0 16px; gap: 4px;
+  background: linear-gradient(180deg, #315779 0%, #2a4b6c 100%);
+  display: flex; flex-direction: column;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: transform .16s ease;
 }
-
-/* Brand */
-.nav-brand {
-  display: flex; align-items: center;
-  text-decoration: none; margin-right: 12px; flex-shrink: 0;
+.side-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.side-brand { display: flex; align-items: center; flex: none; height: 68px; padding: 0 22px; text-decoration: none; }
+.side-brand img { height: 38px; width: auto; display: block; filter: brightness(0) invert(1); }
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 4px 12px 18px; scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.25) transparent; }
+.side-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: #9db5cc; padding: 16px 10px 6px;
 }
-.nav-brand img { height: 36px; width: auto; display: block; }
-.nav-sep {
-  width: 1px; height: 22px;
-  background: #e5e7eb; margin: 0 8px; flex-shrink: 0;
-}
-
-/* Nav items */
-.nav-items { display: flex; align-items: center; gap: 2px; }
-.nav-drop {
+.side-item {
   position: relative;
-  padding-bottom: 10px;
-  margin-bottom: -10px;
+  display: flex; align-items: center; gap: 11px;
+  padding: 7px 10px; margin: 1px 0;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500; line-height: 1.35;
+  text-decoration: none;
+  transition: background .1s, color .1s;
 }
-
-.nav-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 11px; height: 34px;
-  border-radius: 7px; border: none;
-  background: transparent;
-  font-size: 13.5px; font-weight: 500;
-  color: #1f2937; cursor: pointer;
-  font-family: inherit;
-  transition: background .12s;
-  white-space: nowrap;
+#shelter-nav .side-item:link, #shelter-nav .side-item:visited { color: #dce7f1; text-decoration: none; }
+#shelter-nav .side-item:hover { background: rgba(255, 255, 255, .09); color: #fff; }
+#shelter-nav .side-item.is-on { background: rgba(255, 255, 255, .16); color: #fff; font-weight: 600; }
+.side-item.is-on::before {
+  content: ''; position: absolute; left: -12px; top: 7px; bottom: 7px; width: 4px;
+  border-radius: 0 4px 4px 0; background: #a9cdf0;
 }
-.nav-btn:hover,
-.nav-drop:hover > .nav-btn { background: #f3f4f6; }
-
-.nav-caret {
-  display: inline-block;
-  width: 7px; height: 7px;
-  border-right: 1.5px solid #9ca3af;
-  border-bottom: 1.5px solid #9ca3af;
-  transform: rotate(45deg);
-  margin-top: -3px;
+.side-icon {
+  width: 17px; height: 17px; flex: none;
+  fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
 }
+.side-item .side-icon { color: #a9c0d6; }
+.side-item:hover .side-icon, .side-item.is-on .side-icon { color: #fff; }
+.side-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.side-item:focus-visible, .side-toggle:focus-visible { outline: 2px solid #a9cdf0; outline-offset: 1px; }
+.side-item .new-badge { background: rgba(255, 255, 255, .16); color: #fff; }
 
-/* ── Dropdown menus ── */
-.drop-menu {
-  display: block;
-  position: absolute;
-  top: calc(100% - 2px);
-  left: 0;
+/* archived entries: one row that opens the older pages */
+.side-toggle {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  margin-top: 14px; padding: 8px 10px;
+  border: 0; border-top: 1px solid rgba(255, 255, 255, .12); border-radius: 0;
+  background: transparent; color: #9db5cc; cursor: pointer; text-align: left;
+  font-weight: 700; font-size: 10.5px; line-height: 1.4; font-family: inherit; letter-spacing: .1em; text-transform: uppercase;
+}
+.side-toggle:hover { color: #fff; }
+.side-toggle .side-icon { width: 15px; height: 15px; }
+.side-toggle .side-chevron { margin-left: auto; transition: transform .15s ease; }
+.side-toggle[aria-expanded="true"] .side-chevron { transform: rotate(90deg); }
+.side-archived[hidden] { display: none; }
+
+/* ── Floating top bar ── */
+#shelter-top-shade { position: fixed; top: 0; left: var(--shell-nav); right: 0; height: calc(var(--shell-top) - 6px); z-index: 9997; background: var(--shell-bg); transition: left .16s ease; }
+#shelter-top {
+  position: fixed; top: 14px; left: calc(var(--shell-nav) + 28px); right: 28px; height: 56px;
+  z-index: 9998;
   background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 8px 8px 10px !important;
-  min-width: 210px;
-  z-index: 9999;
-  box-shadow: 0 8px 24px rgba(0,0,0,.07);
-  list-style: none !important;
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(6px);
+  border: 1px solid var(--shell-line); border-radius: 12px;
+  box-shadow: 0 6px 22px rgba(31, 51, 73, .07);
+  display: flex; align-items: center; gap: 8px; padding: 0 14px 0 10px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: left .16s ease;
+}
+.top-toggle {
+  width: 36px; height: 36px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: transparent; color: #6b7280; cursor: pointer;
+}
+.top-toggle:hover { background: #f1f4f8; color: var(--shell-ink); }
+.top-brand { display: none; align-items: center; padding-left: 4px; }
+.top-brand img { height: 30px; width: auto; display: block; }
+html.nav-hidden .top-brand { display: flex; }
+.top-toggle:focus-visible, .nav-user-btn:focus-visible { outline: 2px solid var(--shell-accent); outline-offset: 1px; }
+#nav-shade { display: none; position: fixed; inset: 0; z-index: 9998; background: rgba(17, 24, 39, .4); }
+
+/* menu hidden: the page takes the full width */
+html.nav-hidden { --shell-nav: 0px; }
+html.nav-hidden #shelter-nav { transform: translateX(-240px); }
+
+.nav-drop { position: relative; padding-bottom: 10px; margin-bottom: -10px; }
+.nav-caret {
+  display: inline-block; width: 7px; height: 7px;
+  border-right: 1.5px solid #9ca3af; border-bottom: 1.5px solid #9ca3af;
+  transform: rotate(45deg); margin-top: -3px;
+}
+
+/* ── User menu ── */
+.drop-menu,
+.drop-menu li { list-style: none !important; list-style-type: none !important; margin: 0 !important; background-image: none !important; }
+.drop-menu li::before,
+.drop-menu li::after { content: none !important; display: none !important; }
+.drop-menu {
+  display: block; position: absolute; top: calc(100% - 2px); left: 0;
+  background: #fff; border: 1px solid var(--shell-line); border-radius: 10px;
+  padding: 8px 8px 10px !important; min-width: 180px; z-index: 9999;
+  box-shadow: 0 10px 28px rgba(31, 51, 73, .12);
+  visibility: hidden; opacity: 0; pointer-events: none; transform: translateY(6px);
   transition: opacity .12s ease, transform .12s ease, visibility 0s linear .12s;
 }
-.drop-menu::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -10px;
-  height: 10px;
-}
-.nav-drop:hover .drop-menu {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0);
-  transition-delay: 0s;
-}
-
-.drop-label {
-  display: block;
-  font-size: 11px; font-weight: 700;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  padding: 12px 10px 4px 14px !important;
-  list-style: none;
-  background-image: none !important;
-}
-.drop-label:first-child {
-  padding-top: 8px !important;
-}
-
-.drop-div {
-  height: 1px;
-  background: #f3f4f6;
-  margin: 4px 2px;
-  list-style: none;
-  background-image: none !important;
-}
-
+.drop-menu::before { content: ''; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+.nav-drop:hover .drop-menu,
+.nav-drop:focus-within .drop-menu { visibility: visible; opacity: 1; pointer-events: auto; transform: translateY(0); transition-delay: 0s; }
+.drop-div { height: 1px; background: #f1f3f6; margin: 4px 2px; }
 .drop-item {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px !important;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #111827;
-  font-weight: 500;
-  text-decoration: none;
+  display: flex !important; align-items: center; gap: 8px;
+  padding: 7px 10px !important; border-radius: 6px;
+  font-size: 13px; font-weight: 500; text-decoration: none;
   transition: background .1s;
-  list-style: none !important;
-  background-image: none !important;
 }
-.drop-label-emphasis {
-  color: #111827;
-}
-.drop-item:hover { background: #f3f4f6 !important; color: #111827; }
+.drop-menu .drop-item:link, .drop-menu .drop-item:visited { color: #111827; }
+.drop-item:hover { background: #f1f4f8 !important; }
+.drop-item .side-icon { color: var(--shell-muted); }
 
 .new-badge {
   margin-left: auto;
@@ -196,105 +174,127 @@
   padding: 2px 7px; border-radius: 99px;
 }
 
-/* ── Right end — user pill ── */
 .nav-end { margin-left: auto; }
-
 .nav-user-btn {
-  display: flex; align-items: center; gap: 7px;
-  padding: 4px 10px 4px 4px;
-  border: 1px solid #e5e7eb;
-  border-radius: 99px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid var(--shell-line); border-radius: 99px;
   background: transparent; cursor: pointer;
-  font-family: inherit;
+  font-family: inherit; height: auto;
   transition: background .1s;
-  height: auto;
 }
-.nav-user-btn:hover { background: #f3f4f6; }
-
+.nav-user-btn:hover { background: #f1f4f8; }
 .nav-avatar {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: #dbeafe; color: #1e40af;
-  font-size: 10px; font-weight: 700;
+  position: relative;
+  width: 30px; height: 30px; border-radius: 50%;
+  background: #1f9d63; color: #fff;
+  font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
-.nav-uname { font-size: 13px; color: #111827; font-weight: 500; }
+.nav-avatar::after {
+  content: ''; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px;
+  border-radius: 50%; background: #34d27b; border: 2px solid #fff;
+}
+.nav-uname { font-size: 13px; color: #111827; font-weight: 600; }
 .drop-menu-right { left: auto !important; right: 0; }
 
-/* ── Mobile hamburger ── */
-.nav-hamburger {
-  display: none;
-  margin-left: auto;
-  width: 34px; height: 34px;
-  border: 1px solid #e5e7eb; border-radius: 7px;
-  background: transparent; cursor: pointer;
-  flex-direction: column; align-items: center;
-  justify-content: center; gap: 4px;
-}
-.nav-hamburger span {
-  display: block;
-  width: 16px; height: 1.5px;
-  background: #6b7280;
-}
-
-/* ── Mobile nav panel ── */
-#mobile-nav {
-  display: none;
-  position: fixed; top: 52px; left: 0; right: 0;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 10px 14px 16px;
-  z-index: 9998;
-  max-height: calc(100vh - 52px);
-  overflow-y: auto;
-}
-#mobile-nav .drop-item { white-space: normal; }
-#mobile-nav .drop-label {
-  padding: 10px 0 3px 10px !important;
-  background-image: none !important;
-}
-#mobile-nav .drop-div {
-  margin: 4px 0;
-  background-image: none !important;
-}
-
 /* ── Page layout ── */
-.page-wrapper { margin-top: 52px; }
+.page-wrapper { margin-top: var(--shell-top); transition: margin-left .16s ease; }
+#shelter-nav ~ .page-wrapper { margin-left: var(--shell-nav); }
 
-.breadcrumbs {
-  padding: 10px 20px;
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
-  font-size: 13px; color: #6b7280;
+/* page title, then where you are */
+.page-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 0 28px; }
+.page-head > * { margin-top: 14px; }
+.page-head-title { font-size: 21px; font-weight: 700; color: var(--shell-ink); line-height: 1.25; }
+.page-head-title + div.breadcrumbs { border-left: 1px solid #cfd6df !important; padding-left: 16px !important; }
+div.breadcrumbs {
+  background: none !important; border: 0 !important; padding: 0 !important;
+  font-size: 13.5px; font-weight: 500; color: #5b6676 !important; text-align: left;
 }
-.breadcrumbs a { color: #2563eb; text-decoration: none; }
+div.breadcrumbs a:link, div.breadcrumbs a:visited { color: var(--shell-accent) !important; text-decoration: none; font-weight: 600; }
+div.breadcrumbs a:hover { text-decoration: underline; }
+div.breadcrumbs .crumb-sep { margin: 0 8px; color: #9aa4b2; }
+div.breadcrumbs .crumb-current { color: var(--shell-ink); font-weight: 600; }
+/* a page's own trail waits here until the script lifts it into the row; old Bootstrap "Home" lists are dropped */
+.page-wrapper > div.breadcrumbs { padding: 0 28px !important; margin-top: 8px; }
+.page-wrapper > ol.breadcrumb, .page-wrapper > ol.breadcrumbs { display: none; }
 
-.messagelist {
-  list-style: none !important;
-  background-image: none !important;
-  padding: 0 20px; margin: 12px 0;
-}
-.messagelist li {
-  background-image: none !important;
-  list-style: none !important;
-}
+.messagelist { list-style: none !important; background-image: none !important; padding: 0 28px; margin: 12px 0; }
+.messagelist li { background-image: none !important; list-style: none !important; border-radius: 8px; }
 .messagelist li::before,
-.messagelist li::after {
-  content: none !important;
-  display: none !important;
-}
+.messagelist li::after { content: none !important; display: none !important; }
 
+/* signed-in pages sit in a white card on the tinted background */
 #content { padding: 24px 20px; }
-#content h1 {
-  font-size: 22px; font-weight: 500;
-  color: #111827; margin-bottom: 8px;
+#shelter-nav ~ .page-wrapper #content {
+  display: flow-root;
+  margin: 16px 28px 28px; padding: 22px 24px;
+  background: #fff; border: 1px solid var(--shell-line); border-radius: 12px;
+  min-width: 0;
+}
+/* The page never scrolls sideways: a wide data table scrolls inside its own box, under a title row that stays put. */
+#changelist .results, #content .table-responsive { overflow-x: auto; max-width: 100%; }
+#content h1 { font-size: 22px; font-weight: 600; color: var(--shell-ink); margin-bottom: 8px; }
+
+/* ── One accent across Django admin and Bootstrap pages ──
+   Kept at the same weight as the stylesheets they replace, so a page's own classes still win. */
+a:link, a:visited { color: var(--shell-accent); }
+.module h2, .module caption, .inline-group h2, #changelist-filter h2 {
+  background: #e9f0f7; color: var(--shell-ink); font-weight: 600; letter-spacing: .02em;
+}
+.module caption a.section:link, .module caption a.section:visited,
+.module h2 a:link, .module h2 a:visited { color: var(--shell-ink); }
+.button, input[type=submit], input[type=button], .submit-row input, a.button {
+  background: var(--shell-accent); color: #fff; border-radius: 6px;
+}
+.button:hover, input[type=submit]:hover, input[type=button]:hover,
+.button.default, input[type=submit].default, .submit-row input.default { background: var(--shell-accent-dark); }
+.selector-chosen h2 { background: var(--shell-accent); color: #fff; }
+.btn-primary, a.btn-primary:link, a.btn-primary:visited {
+  background-color: var(--shell-accent); border-color: var(--shell-accent-dark); color: #fff;
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: var(--shell-accent-dark); border-color: var(--shell-accent-dark); color: #fff;
 }
 
-/* ── Mobile breakpoint ── */
-@media (max-width: 680px) {
-  .nav-items,
-  .nav-sep,
-  .nav-end { display: none; }
-  .nav-hamburger { display: flex; }
+/* ── Site administration: boxed app blocks in as many columns as fit, Recent actions in its own column ── */
+body.dashboard #shelter-nav ~ .page-wrapper #content {
+  display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: 24px; align-items: start; width: auto;
+}
+body.dashboard #content > h1, body.dashboard #content > br { display: none; }
+body.dashboard #content-main { float: none; width: auto; min-width: 0; column-width: 330px; column-gap: 20px; }
+body.dashboard #content-main .module {
+  break-inside: avoid; margin: 0 0 20px; background: #fff;
+  border: 1px solid var(--shell-line); border-radius: 10px; overflow: hidden;
+}
+body.dashboard #content-main .module table { width: 100%; }
+body.dashboard #content-main .module caption { padding: 9px 14px; }
+body.dashboard #content-main .module th, body.dashboard #content-main .module td { padding: 6px 14px; }
+body.dashboard #content-related {
+  float: none; position: static; width: auto; margin: 0;
+  background: #f7f9fb; border: 1px solid var(--shell-line); border-radius: 10px; overflow: hidden;
+}
+body.dashboard #content-related .module { background: none; }
+body.dashboard #content-related h2 { background: none; padding: 14px 16px 6px; font-size: 16px; color: var(--shell-ink); }
+body.dashboard #content-related h3, body.dashboard #content-related p,
+body.dashboard #content-related .actionlist { padding-left: 16px; padding-right: 16px; }
+@media (max-width: 1150px) {
+  body.dashboard #shelter-nav ~ .page-wrapper #content { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── Small screens: the menu slides over the page ── */
+@media (max-width: 900px) {
+  :root { --shell-nav: 0px; }
+  #shelter-nav { width: 240px; transform: translateX(-240px); box-shadow: 0 8px 30px rgba(0, 0, 0, .2); }
+  #shelter-top { left: 12px; right: 12px; }
+  .top-brand { display: flex; }
+  html.nav-open #shelter-nav { transform: none; }
+  html.nav-open #nav-shade { display: block; }
+  .page-head { padding: 0 14px; }
+  #shelter-nav ~ .page-wrapper #content { margin: 12px 14px 20px; padding: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #shelter-nav, #shelter-top, #shelter-top-shade, .page-wrapper { transition: none; }
 }
 </style>
 </head>
@@ -304,12 +304,13 @@
 {% block nav %}{% endblock %}
 
 <div class="page-wrapper">
-  {% block breadcrumbs %}
-  <div class="breadcrumbs">
-    <a href="{% url 'master:index' %}">{% trans 'Home' %}</a>
-    {% if title %} › {{ title }}{% endif %}
+  <div class="page-head">
+    {% if title %}<span class="page-head-title">{{ title }}</span>{% endif %}
+    <div class="breadcrumbs" data-auto><a href="/home">{% trans 'Home' %}</a>{% block crumbs %}{% endblock %}</div>
+    {% block page_tools %}{% endblock %}
   </div>
-  {% endblock %}
+  {# Older pages put their own "Home" list, scripts and sometimes content in this block; it renders under the row above. #}
+  {% block breadcrumbs %}{% endblock %}
 
   {% block messages %}
   {% if messages %}
@@ -323,7 +324,7 @@
 
   <div id="content" class="{% block coltype %}colM{% endblock %}">
     {% block pretitle %}{% endblock %}
-    {% block content_title %}{% if title %}<h1>{{ title }}</h1>{% endif %}{% endblock %}
+    {% block content_title %}{% endblock %}
     {% block content %}
     {% block object-tools %}{% endblock %}
     {{ content }}
@@ -335,15 +336,85 @@
 </div>
 
 <script nonce="{{ csp_nonce }}">
-  const ham = document.querySelector('.nav-hamburger');
-  const mob = document.getElementById('mobile-nav');
-  if (ham && mob) {
-    ham.addEventListener('click', () => {
-      const open = mob.style.display === 'block';
-      mob.style.display = open ? 'none' : 'block';
-      mob.setAttribute('aria-hidden', String(open));
+  (function () {
+    var root = document.documentElement;
+    var toggle = document.getElementById('nav-toggle');
+    var shade = document.getElementById('nav-shade');
+    if (!toggle) { return; }
+    var small = window.matchMedia('(max-width: 900px)');
+    toggle.addEventListener('click', function () {
+      if (small.matches) { root.classList.toggle('nav-open'); return; }
+      var hidden = root.classList.toggle('nav-hidden');
+      try { localStorage.setItem('shelter-nav', hidden ? 'hidden' : 'shown'); } catch (e) {}
+      window.dispatchEvent(new Event('resize'));
     });
-  }
+    shade.addEventListener('click', function () { root.classList.remove('nav-open'); });
+
+    // mark the menu entry for the page being viewed: the longest matching path wins
+    var here = window.location.pathname, best = null, bestLength = 0;
+    Array.prototype.forEach.call(document.querySelectorAll('#shelter-nav .side-item'), function (item) {
+      var path = item.pathname.replace(/\/$/, '');
+      var exact = item.hasAttribute('data-exact');
+      var match = exact ? here.replace(/\/$/, '') === path : here.indexOf(path) === 0;
+      if (match && path.length >= bestLength) { best = item; bestLength = path.length; }
+    });
+    if (best) { best.classList.add('is-on'); best.setAttribute('aria-current', 'page'); }
+
+    // older pages live under "Archived": closed until asked for, or when the current page is one of them
+    var archivedToggle = document.getElementById('side-archived-toggle');
+    var archived = document.getElementById('side-archived');
+    function showArchived(open) {
+      archived.hidden = !open;
+      archivedToggle.setAttribute('aria-expanded', String(open));
+    }
+    if (archivedToggle) {
+      var remembered = false;
+      try { remembered = localStorage.getItem('shelter-archived') === 'open'; } catch (e) {}
+      showArchived(remembered || Boolean(best && archived.contains(best)));
+      archivedToggle.addEventListener('click', function () {
+        showArchived(archived.hidden);
+        try { localStorage.setItem('shelter-archived', archived.hidden ? 'closed' : 'open'); } catch (e) {}
+      });
+    }
+
+    // the title-and-breadcrumb row: a page's own trail (Django admin) replaces the default one;
+    // every other page gets Home > Group > Page from the menu entry it belongs to
+    var head = document.querySelector('.page-head');
+    var crumbs = head && head.querySelector('div.breadcrumbs[data-auto]');
+    var own = document.querySelector('.page-wrapper > div.breadcrumbs');
+    if (crumbs && own) { head.replaceChild(own, crumbs); crumbs = null; }
+    function addCrumb(text, current) {
+      var sep = document.createElement('span');
+      sep.className = 'crumb-sep';
+      sep.textContent = '\u203a';
+      var part = document.createElement('span');
+      if (current) { part.className = 'crumb-current'; }
+      part.textContent = text;
+      crumbs.appendChild(sep);
+      crumbs.appendChild(part);
+    }
+    if (best) {
+      var label = best.querySelector('.side-text').textContent;
+      if (crumbs && crumbs.children.length === 1) {
+        var group = best.closest('[data-group]');
+        var heading = best.previousElementSibling;
+        while (!group && heading && !heading.classList.contains('side-label')) { heading = heading.previousElementSibling; }
+        var section = group ? group.getAttribute('data-group') : heading ? heading.textContent.trim() : '';
+        if (section && section.toLowerCase() !== label.toLowerCase()) { addCrumb(section, false); }
+        addCrumb(label, true);
+      }
+      if (head && !head.querySelector('.page-head-title')) {
+        var title = document.createElement('span');
+        title.className = 'page-head-title';
+        title.textContent = label;
+        head.insertBefore(title, head.firstChild);
+      }
+    }
+    // a page heading that only repeats the title above it is dropped
+    var shown = head && head.querySelector('.page-head-title');
+    var first = document.querySelector('#content h1');
+    if (shown && first && first.textContent.trim().toLowerCase() === shown.textContent.trim().toLowerCase()) { first.hidden = true; }
+  })();
 </script>
 
 {% block nav_global %}{% endblock %}

@@ -1,0 +1,395 @@
+{% comment %}
+Staff home page. Prefixed home- and scoped under body.home-body. Colours follow the Design Studio palette
+(design_studio/partials/styles.html); status colours appear in pills only, chart colours in a fixed order.
+Cards sit in bands (rows); static/js/home_insights.js shows as many bands as fit the window and pages the rest.
+{% endcomment %}
+<style>
+  body.home-body {
+    --home-ink: #2f3b4a; --home-text: #4a5565; --home-muted: #7a8494; --home-faint: #a7afbb;
+    --home-line: #e8ebef; --home-line-strong: #d5dae1; --home-bg: #f3f5f8; --home-accent: #3d6a96; --home-accent-soft: #eef3f8;
+    --home-s1: #356fa8; --home-s2: #c97234; --home-s3: #1c9684; --home-s4: #bf9520; --home-late: #9a4a17; --home-other: #d5dae1;
+    background: var(--home-bg);
+  }
+  body.home-body #shelter-nav ~ .page-wrapper #content { margin: 0; padding: 0; background: transparent; border: 0; border-radius: 0;
+                                                          max-width: none; min-width: 0; flex: 1; min-height: 0; }
+  body.home-body #content > h1, body.home-body #footer { display: none; }
+  body.home-body .page-wrapper { display: flex; flex-direction: column; height: calc(100vh - var(--shell-top)); }
+  body.home-body .page-head { flex: none; }
+  @media (min-width: 1101px) and (min-height: 561px) { body.home-body { overflow: hidden; } }
+
+  .home-page { height: 100%; display: flex; flex-direction: column; padding: 18px 28px 24px;
+               color: var(--home-text); font-size: 13px; line-height: 1.45;
+               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .home-page :focus-visible, .home-controls :focus-visible { outline: 2px solid var(--home-accent); outline-offset: 2px; }
+  .home-page a:link, .home-page a:visited { color: var(--home-accent); text-decoration: none; }
+
+  /* beside the breadcrumb: city choice and the slider */
+  .home-controls { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+                   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .home-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+  .home-seg { display: inline-flex; align-items: stretch; border: 1px solid var(--home-line-strong); border-radius: 8px; overflow: hidden; background: #fff; }
+  .home-controls .home-seg-item, .home-controls select.home-seg-item {
+    font-weight: 500; font-size: 12.5px; line-height: 1.4; font-family: inherit; color: var(--home-text); background: #fff; border: 0; border-left: 1px solid var(--home-line-strong);
+    border-radius: 0; padding: 6px 13px; cursor: pointer; height: auto; text-decoration: none; }
+  .home-controls .home-seg-item:first-child { border-left: 0; }
+  .home-controls a.home-seg-item:link, .home-controls a.home-seg-item:visited { color: var(--home-text); }
+  .home-controls a.home-seg-item:hover { background: var(--home-accent-soft); text-decoration: none; }
+  .home-controls .home-seg-item.is-on, .home-controls a.home-seg-item.is-on:link, .home-controls a.home-seg-item.is-on:visited {
+    background: var(--home-accent-soft); color: var(--home-accent); font-weight: 600; }
+  .home-slider { display: flex; align-items: center; gap: 10px; }
+  .home-slider[hidden] { display: none; }
+  .home-controls button.home-arrow { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;
+                                     border: 1px solid var(--home-line-strong); border-radius: 8px; background: #fff; color: var(--home-text); padding: 0; }
+  .home-controls button.home-arrow:hover { border-color: var(--home-muted); }
+  .home-dots { display: flex; align-items: center; gap: 6px; }
+  .home-controls button.home-dot { width: 8px; height: 8px; padding: 0; border: 0; border-radius: 99px; background: #c3ccd7; cursor: pointer;
+                                   transition: width .18s ease, background .18s ease; }
+  .home-controls button.home-dot[aria-pressed="true"] { width: 22px; background: var(--home-accent); }
+  .home-controls button.home-more { font-weight: 600; font-size: 12.5px; line-height: 1.4; font-family: inherit; color: #fff; background: var(--home-accent);
+                                    border: 1px solid var(--home-accent); border-radius: 8px; padding: 6px 13px; cursor: pointer; white-space: nowrap; }
+  .home-controls button.home-more:hover { background: #345c83; }
+
+  /* pills: one shape for recency, change, coverage and selectors */
+  .home-pill { display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.5; border-radius: 99px; padding: 2px 8px;
+               white-space: nowrap; background: #f2f4f7; color: #475467; }
+  .home-pill--ok { background: #ecfdf3; color: #067647; }
+  .home-pill--warn { background: #fffaeb; color: #b54708; }
+  .home-pill--bad { background: #fef3f2; color: #b42318; }
+
+  /* bands of cards */
+  .home-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .home-bands { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 20px; }
+  .home-bands.is-next { animation: home-slide-next .26s ease; } .home-bands.is-back { animation: home-slide-back .26s ease; }
+  @keyframes home-slide-next { from { opacity: 0; transform: translateX(48px); } to { opacity: 1; transform: none; } }
+  @keyframes home-slide-back { from { opacity: 0; transform: translateX(-48px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .home-bands.is-next, .home-bands.is-back { animation: none; } }
+  .home-band { flex: 0 1 auto; min-height: 0; display: grid; gap: 20px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .home-page.is-paged .home-band { flex: 1 1 auto; }
+  .home-page.is-paged .home-band--kpis, .home-band--kpis { flex: none; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  /* Every card starts as a placeholder of about its final size and is swapped for the real card when its part
+     of the dashboard arrives; a part that fails says so in place, with a way to try again. */
+  .home-bone { min-height: 240px; border-color: transparent; border-radius: 12px;
+               background: linear-gradient(90deg, #e3e9f0 25%, #f2f5f9 37%, #e3e9f0 63%);
+               background-size: 400% 100%; animation: home-shimmer 1.4s ease infinite; }
+  /* a card's placeholder is as tall as the card usually is, so the slides do not reshuffle when it arrives */
+  .home-card.home-bone { min-height: 250px; }
+  .home-band--kpis .home-card.home-bone { min-height: 118px; }
+  .home-side > .home-card.home-bone { min-height: 112px; }
+  .home-grid-block.home-bone, .home-plot-block.home-bone { min-height: 118px; border-radius: 8px; }
+  @keyframes home-shimmer { from { background-position: 100% 50%; } to { background-position: 0 50%; } }
+  @media (prefers-reduced-motion: reduce) { .home-bone { animation: none; } }
+  .home-missing { min-height: 118px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+                  text-align: center; color: var(--home-muted); font-size: 12.5px; background: #fff;
+                  border: 1px dashed var(--home-line-strong); border-radius: 12px; }
+  .home-missing p { margin: 0; }
+  .home-ready[hidden] { display: none; }
+  /* two charts in one card: stacked grids, side-by-side plots */
+  .home-card .home-card-body--grids { gap: 10px; }
+  .home-card-body--grids > * + * { border-top: 1px solid var(--home-line-strong); padding-top: 10px; }
+  .home-grid-block { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .home-h2-note { font-weight: 400; margin-left: 8px; color: var(--home-faint); }
+  .home-card .home-card-body--plots { flex-direction: row; gap: 20px; }
+  .home-card-body--plots > * + * { border-left: 1px solid var(--home-line-strong); padding-left: 20px; }
+  /* a column of cards inside a band: the two wide cards on the left of the first screen, the three on its right */
+  .home-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; min-height: 0; }
+  .home-side > .home-card { flex: 1; }
+  .home-side > .home-kpi { flex: none; }
+  .home-side.home-c8 > .home-card:first-child { flex: 1.25; }
+  /* short facts under a figure, divided by thin lines: "1,12,374 community toilet | 12,199 open defecation" */
+  .home-facts { display: flex; flex-wrap: wrap; gap: 2px 0; min-width: 0; font-size: 12px; color: var(--home-muted); white-space: nowrap; }
+  .home-facts > span { padding: 0 10px; border-left: 1px solid var(--home-line-strong); }
+  .home-facts > span:first-child { padding-left: 0; border-left: 0; }
+  .home-facts b { color: var(--home-ink); font-weight: 500; }
+  .home-kpi .home-facts { flex-wrap: nowrap; overflow: hidden; margin-top: 2px; }
+  .home-facts--line { flex: none; margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--home-line-strong); }
+  .home-facts.home-bone { min-height: 22px; border-radius: 6px; }
+  /* vulnerable members reached: its own figures above, the funders' line below */
+  .home-impact-block { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .home-impact-block.home-bone { min-height: 128px; border-radius: 8px; }
+  .home-impact-block .home-kpi-top { margin: 0 0 6px; }
+  /* a caveat under a table, never more than two lines */
+  .home-page p.home-note { margin: 6px 0 0; padding: 0; font-size: 11.5px; line-height: 1.4; color: var(--home-muted);
+                           display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .home-plot-block { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .home-plot-note { margin: 4px 0 0; font-size: 12px; color: var(--home-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-legend strong { color: var(--home-ink); font-weight: 600; }
+  /* a small panel that opens from a card */
+  .home-kpi--pop { position: relative; }
+  .home-pop { position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); width: 340px; max-width: 86vw; background: #fff;
+              border: 1px solid var(--home-line-strong); border-radius: 10px; box-shadow: 0 10px 28px rgba(31, 51, 73, .14); padding: 12px 14px; }
+  .home-pop[hidden] { display: none; }
+  .home-pop .home-pane-head { justify-content: space-between; }
+  .home-error { margin: 40px auto; max-width: 420px; text-align: center; color: var(--home-text); font-size: 14px; }
+  .home-page.is-measuring { height: auto; }
+  .home-page.is-measuring .home-bands { flex: none; }
+  .home-page.is-measuring .home-band, .home-page.is-measuring .home-band[hidden] { display: grid; flex: none; max-height: none !important; }
+  .home-band[hidden] { display: none; }
+  .home-card { background: #fff; border: 1px solid var(--home-line-strong); border-radius: 12px; min-width: 0; min-height: 0;
+               display: flex; flex-direction: column; overflow: hidden; }
+  .home-c3 { grid-column: span 3; } .home-c4 { grid-column: span 4; } .home-c5 { grid-column: span 5; }
+  .home-c6 { grid-column: span 6; } .home-c7 { grid-column: span 7; } .home-c8 { grid-column: span 8; } .home-c12 { grid-column: span 12; }
+  .home-card-head { padding: 16px 20px 0; }
+  .home-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--home-muted); }
+  .home-finding { font-size: 14px; font-weight: 600; line-height: 1.3; color: var(--home-ink); margin: 2px 0 0; }
+  .home-card-body { flex: 1; min-height: 0; padding: 12px 20px 16px; display: flex; flex-direction: column; overflow: hidden; }
+  .home-card-foot { padding: 8px 20px; border-top: 1px solid var(--home-line); background: #fafbfc; color: var(--home-muted);
+                    font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-page h2.home-h2 { font-size: 12px; font-weight: 600; color: var(--home-muted); margin: 0 0 7px; text-transform: none;
+                          letter-spacing: 0; background: none; padding: 0; }
+  .home-page h2.home-h2--next { margin-top: 10px; }
+  /* one figure that sums the card up, above its breakdown */
+  .home-stat { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 12px; padding-bottom: 12px;
+               border-bottom: 1px solid var(--home-line); }
+  .home-stat .home-num { font-size: 24px; }
+  .home-stat-label { color: var(--home-text); font-size: 12.5px; }
+  .home-stat .home-pill { align-self: center; }
+  .home-two { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .home-two > div { min-width: 0; display: flex; flex-direction: column; }
+  /* A small table with a split bar in it. Work in progress: builds open now per city, split by age, then what moved
+     lately. Scope of work: households without a toilet of their own per city, split by what they use instead. */
+  .home-progress { flex: 1; min-height: 0; display: grid; grid-template-rows: auto; grid-auto-rows: minmax(24px, 1fr); }
+  .home-progress-row { display: grid; align-items: stretch; grid-template-columns: minmax(64px, 100px) minmax(40px, 1fr) 42px 72px 54px; }
+  .home-progress--scope .home-progress-row { grid-template-columns: minmax(64px, 120px) minmax(60px, 1fr) 70px 92px 70px; }
+  .home-progress--people .home-progress-row { grid-template-columns: minmax(84px, 112px) minmax(44px, 1fr) 46px 68px; }
+  .home-progress-row--head .home-key { margin: 0 4px 2px 0; }
+  .home-progress-row--head .home-key + span { margin-right: 10px; }
+  .home-progress-row + .home-progress-row { border-top: 1px solid var(--home-line); }
+  .home-progress-row > * { display: flex; align-items: center; min-width: 0; padding: 0 8px; white-space: nowrap; }
+  .home-progress-row > :first-child { padding-left: 0; }
+  .home-progress-row > :last-child { padding-right: 0; }
+  /* lines between the columns: the bar and its count read as one column */
+  .home-progress-row > :nth-child(2), .home-progress-row > :nth-child(n+4) { border-left: 1px solid var(--home-line); }
+  .home-progress-row > :nth-child(n+3) { justify-content: flex-end; }
+  .home-progress-row--head { color: var(--home-muted); font-size: 11.5px; }
+  .home-progress-row--head > * { padding-bottom: 5px; align-items: flex-end; overflow: hidden; }
+  .home-progress-row--head > :nth-child(2) { grid-column: span 2; }
+  .home-progress-row--head > :nth-child(n+3) { border-left: 1px solid var(--home-line); }
+  .home-progress-row--head + .home-progress-row { border-top-color: var(--home-line-strong); }
+  .home-progress-city { font-weight: 600; color: var(--home-ink); overflow: hidden; text-overflow: ellipsis; }
+  .home-progress-row > .home-progress-city { display: block; align-self: center; }
+  .home-progress-bar > span { display: flex; gap: 2px; height: 12px; flex: 1; min-width: 0; }
+  .home-progress-bar i { display: block; height: 100%; min-width: 2px; }
+  .home-progress-bar i:last-child { border-radius: 0 4px 4px 0; }
+  .home-progress-value { font-weight: 600; color: var(--home-ink); font-variant-numeric: tabular-nums; }
+  .home-progress-value--quiet { font-weight: 500; color: var(--home-text); }
+  .home-empty { color: var(--home-muted); margin: 6px 0; }
+
+  /* headline figures: four cards, each with an icon chip */
+  .home-kpi { padding: 18px 20px 17px; overflow: visible; }
+  .home-kpi-name { min-width: 0; }
+  .home-kpi-label { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--home-text); }
+  .home-delta strong { color: var(--home-ink); font-weight: 600; }
+  /* the five headline cards are narrow: the period (already on the filter above) is dropped from their labels first */
+  @media (max-width: 1699px) { .home-band--kpis .home-when { display: none; } }
+  .home-chip { width: 34px; height: 34px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+  .home-chip .side-icon { width: 18px; height: 18px; }
+  .home-chip--s1 { background: #eaf1f8; color: var(--home-s1); } .home-chip--s2 { background: #fbf0e8; color: var(--home-s2); }
+  .home-chip--s3 { background: #e6f4f1; color: var(--home-s3); } .home-chip--s4 { background: #f9f2df; color: #9a7614; }
+  .home-chip--s5 { background: #f1ecfa; color: #6b4fb3; } .home-chip--plain { background: #eef1f5; color: #5b6676; }
+  .home-kpi-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 12px 0 4px; }
+  .home-num { font-size: 30px; font-weight: 600; line-height: 1.15; color: var(--home-ink); letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+  .home-num small { font-size: 13px; font-weight: 500; color: var(--home-muted); letter-spacing: 0; }
+  .home-kpi-top .home-pill { align-self: center; }
+  .home-delta { font-size: 12px; color: var(--home-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-delta--more { display: flex; align-items: baseline; gap: 10px; }
+  .home-delta--more span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .home-page .home-delta--more button.home-link { flex: none; margin: 0; font-size: 12px; }
+
+  /* charts */
+  .home-legend { display: flex; flex-wrap: wrap; gap: 3px 14px; font-size: 12px; color: var(--home-muted); margin-bottom: 8px; }
+  .home-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  .home-key--line { height: 2px; width: 14px; vertical-align: 3px; }
+  .home-bg-s1 { background: var(--home-s1); } .home-bg-s2 { background: var(--home-s2); } .home-bg-s3 { background: var(--home-s3); }
+  .home-bg-s4 { background: var(--home-s4); } .home-bg-late { background: var(--home-late); } .home-bg-other { background: var(--home-other); }
+  .home-plot { flex: 1; min-height: 160px; position: relative; }
+  .home-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .home-plot text { font-size: 11px; fill: var(--home-muted); }
+  .home-plot .home-mark-label { fill: var(--home-ink); font-weight: 600; paint-order: stroke; stroke: #fff; stroke-width: 3px; }
+  .home-fill-s1 { fill: var(--home-s1); } .home-fill-s3 { fill: var(--home-s3); }
+  .home-stroke-s2 { fill: none; stroke: var(--home-s2); stroke-width: 2; stroke-linejoin: round; }
+  .home-dot-s2 { fill: var(--home-s2); stroke: #fff; stroke-width: 1.5; }
+  .home-grid-line { stroke: var(--home-line); stroke-width: 1; } .home-base-line { stroke: var(--home-line-strong); stroke-width: 1; }
+  .home-hit { fill: transparent; }
+
+  /* lists spread to use the card's height, up to a comfortable row height */
+  .home-rows { flex: 1; display: grid; gap: 3px; grid-auto-rows: minmax(18px, 1fr); align-content: start; }
+  .home-row { display: grid; grid-template-columns: minmax(64px, 168px) 1fr auto; align-items: center; gap: 10px; }
+  .home-row-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-bar { height: 12px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .home-row-value { min-width: 44px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--home-ink); }
+
+  .home-ladder { flex: 1; display: grid; grid-template-columns: 84px 1fr auto; gap: 4px 10px; align-items: center;
+                 grid-auto-rows: minmax(20px, 1fr); align-content: start; }
+  .home-ladder-note { color: var(--home-muted); font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .home-stack { display: flex; height: 16px; gap: 2px; min-width: 0; }
+  .home-stack span { display: block; height: 100%; }
+  .home-stack span:first-child { border-radius: 4px 0 0 4px; } .home-stack span:last-child { border-radius: 0 4px 4px 0; }
+
+  /* The grid always fills its card: the month labels take one thin row and the city rows share the rest, so
+     more cities mean thinner cells, never an empty strip or a taller card: its smallest height is the same
+     however many rows there are, and rows too thin for their numbers show colour only (the script sets --thin). */
+  .home-heat { flex: 1 1 0; height: 0; min-height: 83px; display: grid; grid-template-columns: 96px repeat(12, minmax(18px, 1fr)) 64px; gap: 2px;
+               grid-template-rows: auto; grid-auto-rows: minmax(0, 1fr); }
+  .home-heat--many { font-size: 11.5px; } .home-heat--many .home-heat-cell { font-size: 9px; }
+  .home-heat-head { color: var(--home-muted); font-size: 11px; text-align: center; padding-bottom: 3px; }
+  .home-heat-city, .home-heat-total { line-height: 1.1; }
+  .home-heat-city { display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-heat-cell { display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 10.5px; font-weight: 600;
+                    font-variant-numeric: tabular-nums; background: var(--home-accent-soft); color: var(--home-faint); }
+  .home-heat-total { display: flex; align-items: center; justify-content: flex-end; font-weight: 600; color: var(--home-ink);
+                     font-variant-numeric: tabular-nums; }
+  .home-heat-future { background: transparent; border: 1px dashed var(--home-line); }
+  .home-heat--thin .home-heat-cell { font-size: 0; }
+  .home-heat--thin .home-heat-city, .home-heat--thin .home-heat-total { font-size: 9.5px; overflow: hidden; }
+  .home-heat-1 { background: #d3e0ee; color: var(--home-ink); } .home-heat-2 { background: #b3c9e0; color: var(--home-ink); }
+  .home-heat-3 { background: #8fafd0; color: var(--home-ink); } .home-heat-4 { background: #6c95bf; color: #fff; }
+  .home-heat-5 { background: #4d7dab; color: #fff; } .home-heat-6 { background: #3d6a96; color: #fff; }
+  .home-heat-7 { background: #2c4f72; color: #fff; }
+  /* the menstrual hygiene grid wears that programme's colour, as its chart and cards do */
+  .home-heat--mhm .home-heat-cell { background: #edf5f3; }
+  .home-heat--mhm .home-heat-future { background: transparent; }
+  .home-heat--mhm .home-heat-1 { background: #cfe9e4; } .home-heat--mhm .home-heat-2 { background: #a9d8d0; }
+  .home-heat--mhm .home-heat-3 { background: #7fc4b9; } .home-heat--mhm .home-heat-4 { background: #53ad9f; color: var(--home-ink); }
+  .home-heat--mhm .home-heat-5 { background: #1c9684; } .home-heat--mhm .home-heat-6 { background: #167a6b; }
+  .home-heat--mhm .home-heat-7 { background: #0f5a4f; }
+
+  .home-page button.home-link { background: none; border: 0; padding: 0; margin: 0 0 6px; color: var(--home-accent); font-weight: 600;
+                                font-size: 12.5px; font-family: inherit; cursor: pointer; }
+  .home-page button.home-link:hover { text-decoration: underline; }
+  .home-pane-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+  .home-pane-head .home-h2 { margin: 0; }
+  .home-page .home-pane-head button.home-link { margin: 0; }
+
+  /* worth a look */
+  .home-gaps { flex: 1; display: grid; grid-auto-rows: minmax(64px, 1fr); align-content: start; max-height: 320px; }
+  .home-gap { display: grid; grid-template-columns: 74px 1fr auto; gap: 12px; align-items: center; border-top: 1px solid var(--home-line); }
+  .home-gap:first-child { border-top: 0; }
+  .home-gap-count { font-size: 24px; font-weight: 600; color: var(--home-ink); text-align: right; font-variant-numeric: tabular-nums; }
+  .home-gap small { display: block; color: var(--home-muted); font-size: 11.5px; }
+  .home-page .home-gap a { font-size: 12px; font-weight: 600; white-space: nowrap; }
+
+  /* tables */
+  .home-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .home-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--home-muted); padding: 0 12px 6px 0;
+                   border-bottom: 1px solid var(--home-line); background: #fff; text-transform: none; letter-spacing: 0; white-space: nowrap;
+                   position: sticky; top: 0; }
+  .home-table td { padding: 5px 12px 5px 0; border-bottom: 1px solid var(--home-line); color: var(--home-text); white-space: nowrap;
+                   font-variant-numeric: tabular-nums; vertical-align: middle; }
+  .home-table tr:last-child td { border-bottom: 0; }
+  .home-table td:first-child { font-weight: 600; color: var(--home-ink); }
+  .home-table .home-pill { margin-left: 6px; }
+  .home-table .home-date:empty + .home-pill { margin-left: 0; }
+  .home-card-body--table { padding-top: 0; flex: 1 1 0; height: 0; min-height: 170px; overflow-x: hidden; overflow-y: auto; }
+  .home-card-body--table .home-table th { padding-top: 10px; }
+
+  .home-tip { position: fixed; pointer-events: none; background: var(--home-ink); color: #fff; font-size: 12px; padding: 5px 8px;
+              border-radius: 4px; opacity: 0; z-index: 2000; white-space: nowrap; }
+
+  /* the list behind a "Worth a look" count */
+  .home-list { max-width: 1080px; margin: 0 auto; padding: 16px 28px 48px; color: var(--home-text); font-size: 14px;
+               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .home-list h1.home-title { font-size: 22px; font-weight: 600; color: var(--home-ink); margin: 6px 0 4px; }
+  .home-list a:link, .home-list a:visited { color: var(--home-accent); text-decoration: none; }
+  .home-list-card { background: #fff; border: 1px solid var(--home-line-strong); border-radius: 8px; padding: 6px 16px; margin-top: 16px; overflow-x: auto; }
+  .home-list .home-table { font-size: 14px; }
+  .home-list .home-table th { position: static; padding-top: 10px; }
+  .home-list .home-table td { white-space: normal; padding: 9px 16px 9px 0; }
+  .home-list .home-sub { color: var(--home-muted); margin: 0; }
+  .home-pager { display: flex; gap: 16px; align-items: center; margin-top: 18px; color: var(--home-muted); }
+
+  @media (max-width: 1500px) {
+    .home-table .home-date { display: none; }
+    .home-table .home-pill { margin-left: 0; }
+    .home-table th { white-space: normal; vertical-align: bottom; }
+    .home-table th, .home-table td { padding-right: 8px; }
+  }
+
+  /* Compact mode: the script switches it on when the first screen (headline cards, where work is happening,
+     menstrual hygiene, delivery momentum, work in progress) would not otherwise fit the window. */
+  .home-page.is-tight { padding: 10px 28px 12px; }
+  .home-page.is-tight .home-bands, .home-page.is-tight .home-band, .home-page.is-tight .home-side { gap: 12px; }
+  .home-page.is-tight .home-card.home-bone { min-height: 195px; }
+  .home-page.is-tight .home-band--kpis .home-card.home-bone { min-height: 98px; }
+  .home-page.is-tight .home-side > .home-card.home-bone { min-height: 100px; }
+  .home-page.is-tight .home-kpi { padding: 10px 14px; }
+  .home-page.is-tight .home-chip { width: 26px; height: 26px; border-radius: 7px; }
+  .home-page.is-tight .home-chip .side-icon { width: 15px; height: 15px; }
+  .home-page.is-tight .home-kpi-top { margin: 6px 0 0; }
+  .home-page.is-tight .home-num { font-size: 23px; }
+  .home-page.is-tight .home-card-foot { display: none; }
+  .home-page.is-tight .home-delta { font-size: 11.5px; }
+  .home-page.is-tight .home-kpi-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-page.is-tight .home-kpi-top { flex-wrap: nowrap; }
+  .home-page.is-tight .home-kpi-top .home-num { flex: none; }
+  .home-page.is-tight .home-kpi-top .home-pill { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .home-page.is-tight .home-card-head { padding: 10px 14px 0; }
+  .home-page.is-tight .home-finding { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-page.is-tight .home-card-body { padding: 6px 14px 10px; }
+  .home-page.is-tight .home-plot { min-height: 104px; }
+  .home-page.is-tight .home-legend { margin-bottom: 2px; }
+  .home-page.is-tight .home-rows { gap: 1px; }
+  .home-page.is-tight .home-heat { min-height: 67px; }
+  .home-page.is-tight .home-card-body--grids { gap: 6px; }
+  .home-page.is-tight .home-card-body--grids > * + * { padding-top: 6px; }
+  .home-page.is-tight .home-eyebrow { font-size: 10px; }
+  .home-page.is-tight .home-progress { grid-auto-rows: minmax(20px, 1fr); }
+  .home-page.is-tight .home-stat { margin-bottom: 6px; padding-bottom: 6px; }
+
+  /* Smallest spacing: tried last, on short laptop screens, so momentum and work in progress still share the
+     first screen. The three cards beside the grids lose their icon, and second lines of text elsewhere are dropped. */
+  .home-page.is-tiny { padding: 8px 28px 10px; }
+  .home-page.is-tiny .home-bands, .home-page.is-tiny .home-band, .home-page.is-tiny .home-side { gap: 10px; }
+  .home-page.is-tiny .home-kpi { padding: 8px 14px; }
+  .home-page.is-tiny .home-side > .home-kpi { padding: 5px 14px; }
+  .home-page.is-tiny .home-side .home-chip { display: none; }
+  .home-page.is-tiny .home-side .home-kpi-top { margin: 0; }
+  .home-page.is-tiny .home-side .home-num { font-size: 20px; }
+  .home-page.is-tiny .home-plot-note, .home-page.is-tiny [data-slot="progress"] .home-finding { display: none; }
+  .home-page.is-tiny .home-note, .home-page.is-tiny .home-extra { display: none; }
+  .home-page.is-tiny .home-impact-block .home-kpi-top { margin: 0 0 2px; }
+  .home-page.is-tiny .home-facts--line { margin-top: 5px; padding-top: 5px; }
+  .home-page.is-tiny .home-heat { min-height: 58px; }
+  .home-page.is-tiny h2.home-h2 { margin-bottom: 3px; }
+  .home-page.is-tiny .home-plot { min-height: 76px; }
+  .home-page.is-tiny .home-progress { grid-auto-rows: minmax(18px, 1fr); }
+
+  /* shorter windows (laptops): the same layout with tighter spacing, so the first screen still holds two rows */
+  @media (max-height: 860px) {
+    .home-page { padding: 12px 28px 16px; }
+    .home-bands { gap: 14px; }
+    .home-band, .home-side { gap: 14px; }
+    .home-kpi { padding: 12px 16px; }
+    .home-chip { width: 28px; height: 28px; border-radius: 8px; }
+    .home-kpi-top { margin: 8px 0 2px; }
+    .home-num { font-size: 26px; }
+    .home-card-head { padding: 12px 16px 0; }
+    .home-card-body { padding: 8px 16px 10px; }
+    .home-card-foot { padding: 5px 16px; }
+    .home-plot { min-height: 150px; }
+    .home-card-body--table { min-height: 150px; }
+    .home-stat { margin-bottom: 8px; padding-bottom: 8px; }
+  }
+
+  /* small screens: every band stacks and the page scrolls normally */
+  @media (max-width: 1100px), (max-height: 560px) {
+    .home-page { height: auto; }
+    .home-bands { flex: none; }
+    .home-band, .home-band[hidden] { display: grid; flex: none; max-height: none !important; }
+    body.home-body .page-wrapper { display: block; height: auto; }
+    .home-c4, .home-c5, .home-c6, .home-c7, .home-c8 { grid-column: span 12; }
+    .home-card-body--plots > * + * { border-left: 0; padding-left: 0; }
+    .home-card { overflow: visible; }
+    .home-card-body { overflow: visible; }
+    .home-card-body--table { overflow-x: auto; height: auto; min-height: 0; flex: none; }
+    .home-plot { flex: none; height: 220px; }
+    .home-heat { flex: none; height: auto; }
+    .home-slider { display: none; }
+    .home-band--kpis, .home-page.is-paged .home-band--kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .home-page { padding: 14px; }
+    .home-two { grid-template-columns: 1fr; }
+    .home-card .home-card-body--plots { flex-direction: column; }
+    .home-band--kpis, .home-page.is-paged .home-band--kpis { grid-template-columns: 1fr; }
+  }
+</style>

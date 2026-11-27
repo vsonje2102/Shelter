@@ -3,7 +3,7 @@
 /* ================= NOTES ================= */
 
 .notes{
-	margin-top: 22px;
+	margin-top: 14px;
 	font-size: 13px;
 	color: #374151;
 	line-height: 1.5;
@@ -15,7 +15,7 @@
 .reports-tabs-bar{
 	display:flex;
 	background:#ffffff;
-	border-bottom:2px solid #dbeafe;
+	border-bottom:2px solid #d5dae1;
 	margin-bottom:24px;
 }
 
@@ -34,9 +34,9 @@
 }
 
 .reports-tab.active{
-	background:#eef6ff;
-	color:#1d4ed8;
-	border-bottom:3px solid #1d4ed8;
+	background:#eef3f8;
+	color:#345c83;
+	border-bottom:3px solid #345c83;
 }
 
 
@@ -63,17 +63,17 @@
 	flex-direction:column;
 	width:100%;
 	max-width:780px;
-	height:calc(100vh - 180px);
-	min-height:620px;
 	border-radius:14px;
-	box-shadow:0 10px 28px rgba(0,0,0,0.08);
-	padding:24px 28px;
+	border:1px solid #e1e6ed;
+	padding:18px 26px;
 	margin:0 auto;
-	overflow-y:auto;
 }
 
-/* Only the pane scrolls, so the tab bar stays put at the top of the card. */
+/* Cards are as tall as what they hold. Only a loaded factsheet is long enough to scroll, and then
+   just its pane does, so the tab bar stays put at the top of the card. */
 .preview-container{
+	max-height:calc(100vh - var(--shell-top, 82px) - 150px);
+	min-height:220px;
 	overflow:hidden;
 }
 
@@ -110,7 +110,7 @@
 
 .report-header{
 	text-align:center;
-	margin-bottom:26px;
+	margin-bottom:18px;
 }
 
 .report-header h1{
@@ -157,8 +157,8 @@
 
 .report-row select:focus{
 	outline:none;
-	border-color:#2563eb;
-	box-shadow:0 0 0 2px rgba(37,99,235,0.15);
+	border-color:#3d6a96;
+	box-shadow:0 0 0 2px rgba(61,106,150,0.18);
 }
 
 
@@ -177,14 +177,14 @@
 	font-weight:600;
 	border-radius:9px;
 	border:none;
-	background:#2563eb;
+	background:#3d6a96;
 	color:white;
 	font-size:13px;
 	transition:all .2s ease;
 }
 
 .report-actions button:hover{
-	background:#1d4ed8;
+	background:#345c83;
 }
 
 .report-actions button:disabled{
@@ -196,7 +196,7 @@
 /* ================= DOWNLOAD BUTTON READY ================= */
 
 #downloadBtn.ready{
-	background:#1d4ed8;
+	background:#345c83;
 	color:white;
 	cursor:pointer;
 }
@@ -249,7 +249,7 @@
 	padding:0;
 	border:0;
 	background:none;
-	color:#2563eb;
+	color:#3d6a96;
 	font-size:12px;
 	text-decoration:underline;
 	cursor:pointer;
@@ -291,7 +291,7 @@
 }
 
 .slum-search-row.is-active{
-	outline:2px solid #2563eb;
+	outline:2px solid #3d6a96;
 	outline-offset:-2px;
 }
 
@@ -440,4 +440,11 @@
 
 }
 
+
+/* family factsheet tab */
+#individual_family .report-container{ max-width:560px; width:100%; }
+#familyHouseNo{ flex:1; min-width:0; }
+.family-message{ margin-top:14px; font-size:13.5px; color:#4a5565; min-height:20px; }
+.family-message.is-error{ color:#b42318; }
+.family-message a{ font-weight:600; }
 </style>

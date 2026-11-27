@@ -23,6 +23,7 @@ class DisableMigrations(dict):
 
 MIGRATION_MODULES = DisableMigrations()
 DEBUG = False
+SITE_ENVIRONMENT = "prod"
 # Explicit hosts, as on a real server (utils/checks.py refuses '*' when DEBUG is off).
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 # The developer's local_settings.py may point at prod's BIRT; tests do not use it.
@@ -31,6 +32,7 @@ BIRT_REPORT_CMD = ""
 GOOGLE_API_KEY = "test-google-maps-key"
 # Failed-login counters off by default; shelter/test_login_throttle.py switches them on.
 CACHES = dict(CACHES, auth_throttle={"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
-              design_preview={"BACKEND": "django.core.cache.backends.dummy.DummyCache"})
+              design_preview={"BACKEND": "django.core.cache.backends.dummy.DummyCache"},
+              home_insights={"BACKEND": "django.core.cache.backends.dummy.DummyCache"})
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]

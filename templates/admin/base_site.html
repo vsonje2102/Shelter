@@ -5,237 +5,118 @@
 
 {% block nav %}
   {% if user.is_authenticated %}
-    <nav id="shelter-nav" aria-label="Main navigation">
-      <a class="nav-brand" href="/home"><img src="{% static 'images/shelter.png' %}" alt="Shelter" /></a>
-      <div class="nav-sep"></div>
+    {% include "admin/nav_icons.html" %}
 
-      <div class="nav-items">
-        <!-- Admin -->
-        <div class="nav-drop">
-          <button class="nav-btn">Admin <span class="nav-caret"></span></button>
-          <ul class="drop-menu">
-            <li class="drop-label">System</li>
-            <li>
-              <a class="drop-item" href="/accounts/">Database administration</a>
-            </li>
-            <li class="drop-div"></li>
-            <li class="drop-label">Data</li>
-            {% if perms.master.view_survey %}
-              <li>
-                <a class="drop-item" href="/admin/surveymapping/">Survey mapping</a>
-              </li>
-            {% endif %}
-            {% if perms.master.view_rapid_slum_appraisal %}
-              <li>
-                <a class="drop-item" href="/admin/sluminformation/rim/display/">RIM additional info</a>
-              </li>
-            {% endif %}
-            {% if perms.component.can_upload_KML %}
-              <li>
-                <a class="drop-item" href="/component/">Upload KML</a>
-              </li>
-            {% endif %}
-            {% if user.is_superuser %}
-              <li>
-                <a class="drop-item" href="/slum-versions/">Slum data versions</a>
-              </li>
-            {% endif %}
-          </ul>
-        </div>
+    <aside id="shelter-nav" aria-label="Main navigation">
+      <a class="side-brand" href="/home" title="Home">
+        <img src="{% static 'images/shelter.png' %}" alt="Shelter Associates" />
+      </a>
 
-        <!-- Analytics -->
-        {% if perms.mastersheet.can_view_mastersheet or perms.mastersheet.can_view_mastersheet_report %}
-          <div class="nav-drop">
-            <button class="nav-btn">Analytics <span class="nav-caret"></span></button>
-            <ul class="drop-menu">
-              <li class="drop-label">Graphs</li>
-              <li>
-                <a class="drop-item" href="/graphs/type/toilet_construction/">Toilet construction</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/graphs/type/community_mobilization/">Community mobilization</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/graphs/covid_data">Covid data</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/graphs/member_data">Member data</a>
-              </li>
-              {% if perms.mastersheet.can_view_mastersheet %}
-                <li class="drop-div"></li>
-                <li class="drop-label">Mastersheets</li>
-                <li>
-                  <a class="drop-item" href="/mastersheet/show/mastersheet/">Progress tracking</a>
-                </li>
-                <li>
-                  <a class="drop-item" href="/mastersheet/show/summery/">Summary view</a>
-                </li>
-                <li>
-                  <a class="drop-item" href="/mastersheet/report/">Reports</a>
-                </li>
-              {% endif %}
-              {% if user.is_superuser or request.user|has_group:"GIS" or request.user|has_group:"Team Leader" %}
-                <li>
-                  <a class="drop-item" href="{% url 'rim_data_download' %}">RIM Data Download</a>
-                </li>
-              {% endif %}
-            </ul>
-          </div>
+      <nav class="side-scroll">
+        {% if user.is_staff %}
+          <a class="side-item" href="{% url 'master:index' %}" data-exact title="Dashboard"><svg class="side-icon" aria-hidden="true"><use href="#icon-dashboard"></use></svg><span class="side-text">Dashboard</span></a>
         {% endif %}
 
-        <!-- Accounts -->
+        <div class="side-label"><span>Admin</span></div>
+        <a class="side-item" href="/accounts/" title="Database administration"><svg class="side-icon" aria-hidden="true"><use href="#icon-database"></use></svg><span class="side-text">Database administration</span></a>
+        {% if perms.master.view_rapid_slum_appraisal %}
+          <a class="side-item" href="/admin/sluminformation/rim/display/" title="RIM additional info"><svg class="side-icon" aria-hidden="true"><use href="#icon-file-text"></use></svg><span class="side-text">RIM additional info</span></a>
+        {% endif %}
+        {% if perms.component.can_upload_KML %}
+          <a class="side-item" href="/component/" title="Upload KML"><svg class="side-icon" aria-hidden="true"><use href="#icon-map"></use></svg><span class="side-text">Upload KML</span></a>
+        {% endif %}
+        {% if user.is_superuser %}
+          <a class="side-item" href="/slum-versions/" title="Slum data versions"><svg class="side-icon" aria-hidden="true"><use href="#icon-layers"></use></svg><span class="side-text">Slum data versions</span></a>
+        {% endif %}
+
+        {% if perms.mastersheet.can_view_mastersheet or user.is_superuser or request.user|has_group:"GIS" or request.user|has_group:"Team Leader" %}
+          <div class="side-label"><span>Analytics</span></div>
+          {% if perms.mastersheet.can_view_mastersheet %}
+            <a class="side-item" href="/mastersheet/show/mastersheet/" title="Progress tracking"><svg class="side-icon" aria-hidden="true"><use href="#icon-table"></use></svg><span class="side-text">Progress tracking</span></a>
+            <a class="side-item" href="/mastersheet/show/summery/" title="Summary view"><svg class="side-icon" aria-hidden="true"><use href="#icon-list"></use></svg><span class="side-text">Summary view</span></a>
+            <a class="side-item" href="/mastersheet/report/" title="Mastersheet reports"><svg class="side-icon" aria-hidden="true"><use href="#icon-pie-chart"></use></svg><span class="side-text">Mastersheet reports</span></a>
+          {% endif %}
+          {% if user.is_superuser or request.user|has_group:"GIS" or request.user|has_group:"Team Leader" %}
+            <a class="side-item" href="{% url 'rim_data_download' %}" title="RIM data download"><svg class="side-icon" aria-hidden="true"><use href="#icon-download"></use></svg><span class="side-text">RIM data download</span></a>
+          {% endif %}
+        {% endif %}
+
         {% if request.user|has_group:"Account" or user.is_superuser %}
-          <div class="nav-drop">
-            <button class="nav-btn">Accounts <span class="nav-caret"></span></button>
-            <ul class="drop-menu">
-              <li class="drop-label">Invoices</li>
-              <li>
-                <a class="drop-item" href="/mastersheet/accounts/">Overview &amp; reports</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/accounts/mastersheet/invoice/add/" target="_blank">Add invoice</a>
-              </li>
-            </ul>
-          </div>
+          <div class="side-label"><span>Accounts</span></div>
+          <a class="side-item" href="/mastersheet/accounts/" title="Invoices: overview and reports"><svg class="side-icon" aria-hidden="true"><use href="#icon-credit-card"></use></svg><span class="side-text">Invoices overview</span></a>
+          <a class="side-item" href="/accounts/mastersheet/invoice/add/" target="_blank" rel="noopener" title="Add invoice"><svg class="side-icon" aria-hidden="true"><use href="#icon-file-plus"></use></svg><span class="side-text">Add invoice</span></a>
         {% endif %}
 
-        <!-- Reports -->
         {% if user.is_staff %}
-          <div class="nav-drop">
-            <button class="nav-btn">Reports <span class="nav-caret"></span></button>
-            <ul class="drop-menu">
-              <li class="drop-label">Documents</li>
-              <li>
-                <a class="drop-item" href="/reports">Reports <span class="new-badge">New</span></a>
-              </li>
-              <li>
-                <a class="drop-item" href="/admin/report/">Factsheet report</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/admin/vulnerabilityReport/" target="_blank">Vulnerability report</a>
-              </li>
-              <li>
-                <a class="drop-item" href="/graphs/factsheet_data">City-wise factsheet data</a>
-              </li>
-            </ul>
-          </div>
+          <div class="side-label"><span>Reports</span></div>
+          <a class="side-item" href="/reports" title="Reports"><svg class="side-icon" aria-hidden="true"><use href="#icon-file-chart"></use></svg><span class="side-text">Reports</span><span class="new-badge">New</span></a>
+          <a class="side-item" href="/graphs/factsheet_data" title="City-wise factsheet data"><svg class="side-icon" aria-hidden="true"><use href="#icon-building"></use></svg><span class="side-text">City-wise factsheet data</span></a>
+
+          <div class="side-label"><span>Tools</span></div>
+          <a class="side-item" href="/helpers/digipin_generate/" title="Generate Digipin"><svg class="side-icon" aria-hidden="true"><use href="#icon-map-pin"></use></svg><span class="side-text">Generate Digipin</span></a>
+          {% if user|can_use_design_studio %}
+            <a class="side-item" href="{% url 'design_studio:home' %}" title="Design Studio"><svg class="side-icon" aria-hidden="true"><use href="#icon-pen"></use></svg><span class="side-text">Design Studio</span><span class="new-badge">New</span></a>
+          {% endif %}
+          {% if perms.mastersheet.can_view_mastersheet %}
+            <a class="side-item" href="{% url 'photos:photo_index' %}" title="Household photos"><svg class="side-icon" aria-hidden="true"><use href="#icon-image"></use></svg><span class="side-text">Household photos</span><span class="new-badge">New</span></a>
+            {% if user|can_use_avni_console %}
+              <a class="side-item" href="{% url 'avni_console:index' %}" title="AVNI sync console"><svg class="side-icon" aria-hidden="true"><use href="#icon-refresh"></use></svg><span class="side-text">AVNI sync console</span><span class="new-badge">New</span></a>
+            {% endif %}
+          {% endif %}
         {% endif %}
 
-        <!-- Tools -->
-        {% if user.is_staff %}
-          <div class="nav-drop">
-            <button class="nav-btn">Tools <span class="nav-caret"></span></button>
-            <ul class="drop-menu">
-              <li class="drop-label drop-label-emphasis">Utilities</li>
-              <li>
-                <a class="drop-item" href="/helpers/digipin_generate/">Generate Digipin</a>
-              </li>
-              {% if user|can_use_design_studio %}
-                <li>
-                  <a class="drop-item" href="{% url 'design_studio:home' %}">Design Studio <span class="new-badge">New</span></a>
-                </li>
-              {% endif %}
-              <li>
-                <a class="drop-item" href="/helpers/photo-upload/">Photo upload</a>
-              </li>
-              {% if perms.mastersheet.can_view_mastersheet %}
-                <li class="drop-div"></li>
-                <li class="drop-label">Photos</li>
-                <li>
-                  <a class="drop-item" href="{% url 'photos:photo_index' %}">Household photos <span class="new-badge">New</span></a>
-                  {% if user|can_use_avni_console %}<a class="drop-item" href="{% url 'avni_console:index' %}">AVNI sync console <span class="new-badge">New</span></a>{% endif %}
-                </li>
-              {% endif %}
-            </ul>
+        {% if user.is_staff or perms.master.view_survey or perms.mastersheet.can_view_mastersheet or perms.mastersheet.can_view_mastersheet_report %}
+          <button type="button" class="side-toggle" id="side-archived-toggle" aria-expanded="false" aria-controls="side-archived">
+            <svg class="side-icon" aria-hidden="true"><use href="#icon-archive"></use></svg><span>Archived</span>
+            <svg class="side-icon side-chevron" aria-hidden="true"><use href="#icon-chevron"></use></svg>
+          </button>
+          <div class="side-archived" id="side-archived" data-group="Archived" hidden>
+            {% if perms.master.view_survey %}
+              <a class="side-item" href="/admin/surveymapping/" title="Survey mapping"><svg class="side-icon" aria-hidden="true"><use href="#icon-clipboard"></use></svg><span class="side-text">Survey mapping</span></a>
+            {% endif %}
+            {% if perms.mastersheet.can_view_mastersheet or perms.mastersheet.can_view_mastersheet_report %}
+              <a class="side-item" href="/graphs/type/toilet_construction/" title="Toilet construction"><svg class="side-icon" aria-hidden="true"><use href="#icon-bar-chart"></use></svg><span class="side-text">Toilet construction</span></a>
+              <a class="side-item" href="/graphs/type/community_mobilization/" title="Community mobilization"><svg class="side-icon" aria-hidden="true"><use href="#icon-users"></use></svg><span class="side-text">Community mobilization</span></a>
+              <a class="side-item" href="/graphs/covid_data" title="Covid data"><svg class="side-icon" aria-hidden="true"><use href="#icon-activity"></use></svg><span class="side-text">Covid data</span></a>
+              <a class="side-item" href="/graphs/member_data" title="Member data"><svg class="side-icon" aria-hidden="true"><use href="#icon-user"></use></svg><span class="side-text">Member data</span></a>
+            {% endif %}
+            {% if user.is_staff %}
+              <a class="side-item" href="/admin/report/" title="Factsheet reports (old)"><svg class="side-icon" aria-hidden="true"><use href="#icon-book"></use></svg><span class="side-text">Factsheet reports (old)</span></a>
+              <a class="side-item" href="/helpers/photo-upload/" title="Photo upload"><svg class="side-icon" aria-hidden="true"><use href="#icon-camera"></use></svg><span class="side-text">Photo upload</span></a>
+            {% endif %}
           </div>
         {% endif %}
-      </div>
+      </nav>
+    </aside>
 
-      <!-- User dropdown -->
+    <div id="shelter-top-shade"></div>
+    <header id="shelter-top">
+      <button type="button" class="top-toggle" id="nav-toggle" aria-label="Show or hide the menu" aria-controls="shelter-nav">
+        <svg class="side-icon" aria-hidden="true"><use href="#icon-panel"></use></svg>
+      </button>
+      <a class="top-brand" href="/home" title="Home"><img src="{% static 'images/shelter.png' %}" alt="Shelter Associates" /></a>
+
       <div class="nav-end">
         <div class="nav-drop">
-          <button class="nav-user-btn">
+          <button type="button" class="nav-user-btn">
             <div class="nav-avatar">{{ user.get_short_name|default:user.get_username|slice:':2'|upper }}</div>
             <span class="nav-uname">{% firstof user.get_short_name user.get_username %}</span>
             <span class="nav-caret"></span>
           </button>
-          <ul class="drop-menu drop-menu-right" style="min-width:160px;">
+          <ul class="drop-menu drop-menu-right">
             {% if user.has_usable_password %}
               <li>
-                <a class="drop-item" href="{% url 'password_reset' %}">Password help</a>
+                <a class="drop-item" href="{% url 'password_reset' %}"><svg class="side-icon" aria-hidden="true"><use href="#icon-key"></use></svg>Password help</a>
               </li>
               <li class="drop-div"></li>
             {% endif %}
             <li>
-              <a class="drop-item" href="{% url 'admin:logout' %}">Log out</a>
+              <a class="drop-item" href="{% url 'admin:logout' %}"><svg class="side-icon" aria-hidden="true"><use href="#icon-log-out"></use></svg>Log out</a>
             </li>
           </ul>
         </div>
       </div>
-
-      <!-- Hamburger -->
-      <button class="nav-hamburger" aria-label="Toggle menu" aria-controls="mobile-nav"><span></span><span></span><span></span></button>
-    </nav>
-
-    <!-- Mobile panel -->
-    <div id="mobile-nav" aria-hidden="true">
-      <span class="drop-label">Admin</span>
-      <a class="drop-item" href="/accounts/">Database administration</a>
-      {% if perms.master.view_survey %}
-        <a class="drop-item" href="/admin/surveymapping/">Survey mapping</a>
-      {% endif %}
-      {% if perms.component.can_upload_KML %}
-        <a class="drop-item" href="/component/">Upload KML</a>
-      {% endif %}
-      {% if user.is_superuser %}
-        <a class="drop-item" href="/slum-versions/">Slum data versions</a>
-      {% endif %}
-
-      {% if perms.mastersheet.can_view_mastersheet or perms.mastersheet.can_view_mastersheet_report %}
-        <div class="drop-div"></div>
-        <span class="drop-label">Analytics</span>
-        <a class="drop-item" href="/graphs/type/toilet_construction/">Toilet construction</a>
-        <a class="drop-item" href="/graphs/type/community_mobilization/">Community mobilization</a>
-        <a class="drop-item" href="/graphs/covid_data">Covid data</a>
-        <a class="drop-item" href="/graphs/member_data">Member data</a>
-        {% if perms.mastersheet.can_view_mastersheet %}
-          <a class="drop-item" href="/mastersheet/show/mastersheet/">Progress tracking</a>
-          <a class="drop-item" href="/mastersheet/show/summery/">Summary view</a>
-        {% endif %}
-        {% if user.is_superuser or request.user|has_group:"GIS" or request.user|has_group:"Team Leader" %}
-          <a class="drop-item" href="{% url 'rim_data_download' %}">RIM Data Download</a>
-        {% endif %}
-      {% endif %}
-
-      {% if request.user|has_group:"Account" or user.is_superuser %}
-        <div class="drop-div"></div>
-        <span class="drop-label">Accounts</span>
-        <a class="drop-item" href="/mastersheet/accounts/">Overview &amp; reports</a>
-        <a class="drop-item" href="/accounts/mastersheet/invoice/add/">Add invoice</a>
-      {% endif %}
-
-      {% if user.is_staff %}
-        <div class="drop-div"></div>
-        <span class="drop-label">Reports</span>
-        <a class="drop-item" href="/reports">Reports</a>
-        <a class="drop-item" href="/admin/report/">Factsheet report</a>
-        <a class="drop-item" href="/admin/vulnerabilityReport/">Vulnerability report</a>
-        <div class="drop-div"></div>
-        <span class="drop-label">Tools</span>
-        <a class="drop-item" href="/helpers/digipin_generate/">Generate Digipin</a>
-        {% if user|can_use_design_studio %}<a class="drop-item" href="{% url 'design_studio:home' %}">Design Studio</a>{% endif %}
-        <a class="drop-item" href="/helpers/photo-upload/">Photo upload</a>
-        {% if perms.mastersheet.can_view_mastersheet %}
-          <a class="drop-item" href="{% url 'photos:photo_index' %}">Household photos</a>
-          {% if user|can_use_avni_console %}<a class="drop-item" href="{% url 'avni_console:index' %}">AVNI sync console</a>{% endif %}
-        {% endif %}
-      {% endif %}
-
-      <div class="drop-div"></div>
-      {% if user.has_usable_password %}
-        <a class="drop-item" href="{% url 'password_reset' %}">Password help</a>
-      {% endif %}
-      <a class="drop-item" href="{% url 'admin:logout' %}">Log out</a>
-    </div>
+    </header>
+    <div id="nav-shade"></div>
   {% endif %}
 {% endblock %}

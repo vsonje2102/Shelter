@@ -162,6 +162,65 @@ const slumSearch = SlumSearch.create({
 })
 
 
+/* ================= FAMILY FACTSHEET =================
+   Slum + house number -> master:familyrportgenerate -> a PDF link, as on the old Factsheet report page. */
+
+let familySlum = null
+
+const familySearch = SlumSearch.create({
+	index: SlumSearch.readIndex('slum-search-data'),
+	$input: $('#familySlumInput'),
+	$results: $('#familySlumResults'),
+	prefix: 'slum-search',
+	limit: SLUM_SEARCH_LIMIT,
+	onPick: function(row){
+		familySearch.close()
+		familySlum = row
+		$('#familySlumInput').val('')
+		$('#familySlumChosen').show().text(row.name + ' - ' + row.city + ' \u203a ' + row.aw + ' \u203a ' + row.ew)
+		familyReady()
+	}
+})
+
+function familyReady(){
+	$('#familyButton').prop('disabled', !(familySlum && $('#familyHouseNo').val().trim()))
+}
+
+function familyNote(text, isError){
+	$('#familyMessage').toggleClass('is-error', Boolean(isError)).text(text)
+}
+
+$('#familyHouseNo').on('input', familyReady)
+
+$('#familyButton').on('click', function(){
+	const houseNo = $('#familyHouseNo').val().trim()
+	if(!/^\d+$/.test(houseNo)){
+		familyNote('House No must be a number.', true)
+		return
+	}
+	familyNote('Preparing the factsheet\u2026')
+	$('#familyButton').prop('disabled', true)
+	$.ajax({
+		url: "{% url 'master:familyrportgenerate' %}",
+		type: 'POST',
+		dataType: 'json',
+		data: { Sid: familySlum.id, HouseNo: houseNo }
+	}).done(function(json){
+		if(!json.string){
+			familyNote(json.error === 'Not authorized'
+				? 'You are not allowed to open that family\u2019s factsheet.'
+				: 'The factsheet could not be prepared.', true)
+			return
+		}
+		window.open(json.string, '_blank', 'noopener')
+		$('#familyMessage').removeClass('is-error').text('Opened in a new tab. ')
+			.append($('<a>').attr({ href: json.string, target: '_blank', rel: 'noopener' }).text('Open it again'))
+	}).fail(function(){
+		familyNote('The factsheet could not be prepared. You may not have permission to generate reports.', true)
+	}).always(familyReady)
+})
+
+
 function pickSlum(row){
 
 	slumSearch.close()

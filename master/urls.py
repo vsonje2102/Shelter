@@ -22,6 +22,8 @@ from rest_auth.views import LoginView, LogoutView, UserDetailsView
 
 from master.views import (
     index,
+    insight_list,
+    insight_part,
     SurveyListView,
     SurveyCreateView,
     survey_delete_view,
@@ -64,6 +66,8 @@ admin.autodiscover()
 
 urlpatterns = [
     url(r"^$", index, name="index"),
+    url(r"^insights/part/(?P<part>[A-Za-z]+)/$", insight_part, name="insight_part"),
+    url(r"^insights/(?P<key>[a-z_]+)/$", insight_list, name="insight_list"),
     url(r"^filterMasterList/$", filterMasterList, name="filterMasterList"),# added a new end point with all the filters for master list
 
     url(r"^surveymapping/$", SurveyListView.as_view(), name="SurveyCreate"),

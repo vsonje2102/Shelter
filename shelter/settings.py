@@ -215,6 +215,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 from shelter.local_settings import *  # noqa
 
+# Which server this is: "local", "uat" or "prod". It picks the browser-tab icon (green ring, red ring, plain) so
+# open tabs can be told apart. local_settings.py may set it; otherwise it is worked out from DEBUG and BASE_APP_URL.
+if "SITE_ENVIRONMENT" not in globals():
+    SITE_ENVIRONMENT = "local" if DEBUG else "uat" if "uat" in BASE_APP_URL.lower() else "prod"
+
 # ---------------------------------------------------------------------------
 # DEBUG PRINT HELPER
 # Overrides built-in print() to include file name and line number.
@@ -327,6 +332,9 @@ CSP_POLICY = {
 AUTHENTICATION_BACKENDS = ["shelter.auth_throttle.ThrottledModelBackend"]
 
 # Failed sign-in counters must be shared by all gunicorn workers, so they live on disk.
+# Sponsor records that are schemes rather than funders; left out of "Who made it possible" on the staff home page.
+HOME_EXCLUDED_FUNDERS = ["SBM Toilets"]
+
 CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
     "auth_throttle": {
@@ -339,6 +347,14 @@ CACHES = {
         "LOCATION": os.path.join(PARENT_DIR, "cache", "design_preview"),
         "TIMEOUT": 30 * 24 * 3600,
         "OPTIONS": {"MAX_ENTRIES": 500},
+    },
+    # Staff home page figures (aggregates only), shared by every worker.
+    "home_insights": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.path.join(PARENT_DIR, "cache", "home_insights"),
+        # Well above one entry per part, period and city selection: at the default 300 the cache starts throwing
+        # away entries at random, including the ones warm_home_insights has just worked out.
+        "OPTIONS": {"MAX_ENTRIES": 20000},
     },
 }
 
@@ -393,6 +409,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "shelter.context_processors.csp_nonce",
                 "shelter.context_processors.google_api_key",
+                "shelter.context_processors.site_environment",
             ],
         },
     },

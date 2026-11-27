@@ -14,11 +14,11 @@ make the section feel dated.
     --ph-faint: #94a3b8;
     --ph-line: #e6e9ef;
     --ph-line-soft: #f1f3f7;
-    --ph-bg: #f6f7f9;
+    --ph-bg: #eef2f6;
     --ph-surface: #ffffff;
-    --ph-accent: #4f46e5;
-    --ph-accent-dark: #4338ca;
-    --ph-accent-soft: #eef2ff;
+    --ph-accent: #3d6a96;
+    --ph-accent-dark: #345c83;
+    --ph-accent-soft: #eef3f8;
     --ph-green: #047857;
     --ph-green-soft: #ecfdf5;
     --ph-amber: #b45309;
@@ -35,9 +35,8 @@ make the section feel dated.
 
   /* ---------- page shell: replace the admin chrome ---------- */
   body.ph-body { background: var(--ph-bg); }
-  body.ph-body #content { padding: 32px 28px 64px; background: transparent; max-width: none; }
+  body.ph-body #shelter-nav ~ .page-wrapper #content { margin: 0; padding: 16px 28px 48px; background: transparent; border: 0; border-radius: 0; max-width: none; min-width: 0; }
   body.ph-body #content > h1 { display: none; }        /* admin's duplicate title */
-  body.ph-body .breadcrumbs { display: none; }          /* the dated blue bar */
   body.ph-body #footer { display: none; }
 
   .ph-page {
@@ -95,7 +94,7 @@ make the section feel dated.
   body.ph-body .ph-input:focus,
   body.ph-body .ph-select:focus {
     outline: none; border-color: var(--ph-accent);
-    box-shadow: 0 0 0 4px rgba(79,70,229,.13);
+    box-shadow: 0 0 0 4px rgba(61,106,150,.13);
   }
   /* Admin's base.css pins `select { height: 30px }`, which clips the selected
      option once we add real padding. Drive height from padding instead. */
@@ -127,8 +126,8 @@ make the section feel dated.
                                color: var(--ph-ink); box-shadow: var(--ph-sh-2); }
   body.ph-body .ph-btn:active { transform: translateY(1px); }
   body.ph-body .ph-btn--primary { background: var(--ph-accent); border-color: var(--ph-accent);
-                                  color: #fff; box-shadow: 0 1px 2px rgba(79,70,229,.3),
-                                  0 8px 18px -8px rgba(79,70,229,.6); }
+                                  color: #fff; box-shadow: 0 1px 2px rgba(61,106,150,.3),
+                                  0 8px 18px -8px rgba(61,106,150,.6); }
   body.ph-body .ph-btn--primary:hover { background: var(--ph-accent-dark);
                                         border-color: var(--ph-accent-dark); color: #fff; }
   body.ph-body .ph-btn--sm { padding: 6px 12px; font-size: 12.5px; border-radius: var(--ph-r-sm); }
@@ -242,7 +241,7 @@ make the section feel dated.
 
   .ph-spinner { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px;
                 margin: -10px 0 0 -10px; z-index: 1;
-                border: 2px solid rgba(79,70,229,.22); border-top-color: var(--ph-accent);
+                border: 2px solid rgba(61,106,150,.22); border-top-color: var(--ph-accent);
                 border-radius: 50%; animation: ph-spin .7s linear infinite; }
   @keyframes ph-spin { to { transform: rotate(360deg); } }
 
@@ -369,7 +368,7 @@ make the section feel dated.
     border-radius: 999px; font-size: 14.5px; min-width: 340px; box-shadow: var(--ph-sh-1);
     text-transform: none; letter-spacing: normal; color: var(--ph-ink); font-family: inherit; }
   body.ph-body .dataTables_wrapper .dataTables_filter input:focus {
-    outline: none; border-color: var(--ph-accent); box-shadow: 0 0 0 4px rgba(79,70,229,.13); }
+    outline: none; border-color: var(--ph-accent); box-shadow: 0 0 0 4px rgba(61,106,150,.13); }
   .dataTables_wrapper .dataTables_info,
   .dataTables_wrapper .dataTables_length label { font-size: 12.5px; color: var(--ph-muted); }
   .dataTables_wrapper .dataTables_paginate { padding-top: 14px; }

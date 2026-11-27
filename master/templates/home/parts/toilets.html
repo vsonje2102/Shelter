@@ -1,0 +1,153 @@
+{% load indian_numbers %}
+<div data-slot="kpi-completed" class="home-card home-kpi">
+  <div class="home-kpi-label"><span class="home-chip home-chip--s1"><svg class="side-icon" aria-hidden="true"><use href="#icon-check"></use></svg></span><span class="home-kpi-name">Toilets completed<span class="home-when">, {{ figures.period.label }}</span></span></div>
+  {% with tile=figures.tiles.completed %}
+  <div class="home-kpi-top">
+    <span class="home-num">{{ tile.value|indian }} <small>toilets</small></span>
+    {% if tile.change is not None %}
+      {% if tile.change >= 0 %}<span class="home-pill home-pill--ok">&#9650; {{ tile.change|indian }}%</span>
+      {% else %}<span class="home-pill home-pill--bad">&#9660; {{ tile.change|cut:"-" }}%</span>{% endif %}
+    {% endif %}
+  </div>
+  <div class="home-delta">{% if tile.previous is not None %}{{ tile.previous|indian }} a year earlier{% else %}All records up to {{ figures.period.upto }}{% endif %}{% if tile.month is not None %} &middot; <strong>{{ tile.month|indian }} this month</strong>{% endif %}</div>
+  {% endwith %}
+</div>
+<div data-slot="kpi-agreed" class="home-card home-kpi">
+  <div class="home-kpi-label"><span class="home-chip home-chip--s2"><svg class="side-icon" aria-hidden="true"><use href="#icon-edit"></use></svg></span><span class="home-kpi-name">New agreements<span class="home-when">, {{ figures.period.label }}</span></span></div>
+  {% with tile=figures.tiles.agreed %}
+  <div class="home-kpi-top">
+    <span class="home-num">{{ tile.value|indian }} <small>signed</small></span>
+    {% if tile.change is not None %}
+      {% if tile.change >= 0 %}<span class="home-pill home-pill--ok">&#9650; {{ tile.change|indian }}%</span>
+      {% else %}<span class="home-pill home-pill--bad">&#9660; {{ tile.change|cut:"-" }}%</span>{% endif %}
+    {% endif %}
+  </div>
+  <div class="home-delta">{% if tile.previous is not None %}{{ tile.previous|indian }} a year earlier{% else %}All records up to {{ figures.period.upto }}{% endif %}{% if tile.month is not None %} &middot; <strong>{{ tile.month|indian }} this month</strong>{% endif %}</div>
+  {% endwith %}
+</div>
+<div data-slot="kpi-under" class="home-card home-kpi">
+  <div class="home-kpi-label"><span class="home-chip home-chip--s4"><svg class="side-icon" aria-hidden="true"><use href="#icon-tool"></use></svg></span><span class="home-kpi-name">Under construction</span></div>
+  {% with tile=figures.tiles.under_construction %}
+  <div class="home-kpi-top">
+    <span class="home-num">{{ tile.value|indian }} <small>toilets</small></span>
+    {% if tile.overdue %}<span class="home-pill home-pill--warn">{{ tile.overdue|indian }} over {{ tile.overdue_days }} days</span>
+    {% elif tile.value %}<span class="home-pill home-pill--ok">None over {{ tile.overdue_days }} days</span>{% endif %}
+  </div>
+  <div class="home-delta">As of today &middot; agreement signed, build not complete</div>
+  {% endwith %}
+</div>
+<div data-slot="kpi-build" class="home-card home-kpi">
+  <div class="home-kpi-label"><span class="home-chip home-chip--plain"><svg class="side-icon" aria-hidden="true"><use href="#icon-clock"></use></svg></span><span class="home-kpi-name">Time to build<span class="home-when">, {{ figures.period.label }}</span></span></div>
+  {% with tile=figures.tiles.build_days %}
+  <div class="home-kpi-top">
+    <span class="home-num">{% if tile.value is None %}&ndash;{% else %}{{ tile.value }} <small>days</small>{% endif %}</span>
+    {% if tile.slower is not None %}
+      {% if tile.slower > 0 %}<span class="home-pill home-pill--bad">&#9650; {{ tile.slower }} slower</span>
+      {% elif tile.slower < 0 %}<span class="home-pill home-pill--ok">&#9660; {{ tile.faster }} faster</span>
+      {% else %}<span class="home-pill">No change</span>{% endif %}
+    {% endif %}
+  </div>
+  <div class="home-delta">Agreement to completion{% if tile.last is not None %} &middot; {{ tile.last }} in {{ tile.last_label }}{% endif %}</div>
+  {% endwith %}
+</div>
+<div data-slot="heat-toilets" class="home-grid-block">
+  <h2 class="home-h2">Toilets completed <span class="home-h2-note">{{ figures.heat.finding }}</span></h2>
+  <div class="home-heat" id="home-heat-toilets"></div>
+</div>
+<div data-slot="momentum-toilets" class="home-plot-block">
+  <div class="home-legend">
+    <strong>Toilets</strong>
+    <span><i class="home-key home-bg-s1"></i>Completed</span>
+    <span><i class="home-key home-key--line home-bg-s2"></i>Agreements signed</span>
+  </div>
+  <div class="home-plot" id="home-momentum-toilets"></div>
+  <p class="home-plot-note">{{ figures.momentum.finding }}</p>
+</div>
+<div data-slot="progress" class="home-card home-c5">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Work in progress</div>
+    <div class="home-finding">{{ figures.progress.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    <div class="home-legend">
+      <span><i class="home-key home-bg-s4"></i>Open up to {{ figures.progress.overdue_days }} days <strong>{{ figures.progress.within|indian }}</strong></span>
+      <span><i class="home-key home-bg-late"></i>Open longer <strong>{{ figures.progress.overdue|indian }}</strong></span>
+    </div>
+    <div class="home-progress" id="home-progress"></div>
+  </div>
+  <div class="home-card-foot">As of today &middot; completed and agreed count the last {{ figures.progress.days }} days</div>
+</div>
+<div data-slot="gaps" class="home-card home-c4">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Worth a look</div>
+    <div class="home-finding">{{ figures.gaps.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    <div class="home-gaps">
+      {% for gap in figures.gaps.rows %}
+        <div class="home-gap">
+          <div class="home-gap-count">{{ gap.count|indian }}</div>
+          <div>{{ gap.text }}<small>{{ gap.note }}</small></div>
+          {% if can_open_lists and gap.count %}<a href="{% url 'master:insight_list' gap.key %}{% if single_city %}?city={{ single_city }}{% endif %}">View list &rarr;</a>{% else %}<span></span>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="home-card-foot">As of today, for the cities selected above</div>
+</div>
+<div data-slot="stages" class="home-card home-c6">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Where the time goes</div>
+    <div class="home-finding">{{ figures.stages.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    {% with tile=figures.tiles.build_days %}
+    <div class="home-stat">
+      <span class="home-num">{% if tile.value is None %}&ndash;{% else %}{{ tile.value }} <small>days</small>{% endif %}</span>
+      <span class="home-stat-label">typical build, agreement to completion</span>
+      {% if tile.slower is not None %}
+        {% if tile.slower > 0 %}<span class="home-pill home-pill--bad">&#9650; {{ tile.slower }} day{{ tile.slower|pluralize }} slower than {{ tile.last_label }}</span>
+        {% elif tile.slower < 0 %}<span class="home-pill home-pill--ok">&#9660; {{ tile.faster }} day{{ tile.faster|pluralize }} faster than {{ tile.last_label }}</span>
+        {% else %}<span class="home-pill">Same as {{ tile.last_label }}</span>{% endif %}
+      {% endif %}
+    </div>
+    {% endwith %}
+    <div class="home-two">
+      <div><h2 class="home-h2">Days per stage</h2><div class="home-rows" id="home-stages"></div></div>
+      <div><h2 class="home-h2">Days to build, by city</h2><div class="home-rows" id="home-city-days"></div></div>
+    </div>
+  </div>
+  <div class="home-card-foot">Toilets completed in {{ figures.period.label }}</div>
+</div>
+<div data-slot="after" class="home-card home-c4">
+  <div class="home-card-head">
+    <div class="home-eyebrow">After the toilet is built</div>
+    <div class="home-finding">{{ figures.after.finding }}</div>
+  </div>
+  <div class="home-card-body">
+    {% with tile=figures.tiles.in_use %}
+    <div class="home-stat">
+      <span class="home-num">{% if tile.percent is None %}&ndash;{% else %}{{ tile.percent }}<small>%</small>{% endif %}</span>
+      <span class="home-stat-label">of completed toilets confirmed in use</span>
+      <span class="home-pill">{{ tile.used|indian }} of {{ tile.completed|indian }}</span>
+    </div>
+    {% endwith %}
+    <div class="home-rows" id="home-after"></div>
+  </div>
+  <div class="home-card-foot">Toilets completed in {{ figures.period.label }} &middot; blank use date = not recorded</div>
+</div>
+<div data-slot="cancelled" class="home-card home-c4">
+  <div class="home-card-head">
+    <div class="home-eyebrow">Agreements cancelled</div>
+    <div class="home-finding">{{ figures.after.cancel_finding }}</div>
+  </div>
+  <div class="home-card-body">
+    <div class="home-stat">
+      <span class="home-num">{{ figures.after.cancelled_total|indian }}</span>
+      <span class="home-stat-label">cancelled, of {{ figures.after.agreements|indian }} signed in {{ figures.period.label }}</span>
+    </div>
+    <div class="home-rows" id="home-cancelled"></div>
+  </div>
+  <div class="home-card-foot">Share of each city's agreements signed in {{ figures.period.label }}</div>
+</div>
+{{ figures|json_script:"home-data-toilets" }}
