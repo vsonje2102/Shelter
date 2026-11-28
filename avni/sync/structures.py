@@ -22,6 +22,16 @@ STRUCTURE = "Structure"
 DSES = "Detailed Socio Economic Survey"
 
 
+def merged_over_visits(rows, rhs_data):
+    """The registration merged over the row's stored answers (its visits), when the row is this subject's."""
+    existing = rows.values_list("rhs_data", flat=True).first() or {}
+    if existing.get("rhs_uuid") not in (None, rhs_data["rhs_uuid"]):
+        return rhs_data
+    existing = mappings.drop_occupancy_only_keys(dict(existing))
+    existing.update(rhs_data)
+    return existing
+
+
 def save_structure_record(record):
     observations = record.get("observations") or {}
     if not observations:
@@ -38,12 +48,13 @@ def save_structure_record(record):
         return False
     slum_id, city_id = slum_and_city_ids(slum_name, location_id=record.get("Location ID"))
     households.retire_stale_rows(rhs_data["rhs_uuid"], slum_id, city_id, number)
+    rows = HouseholdData.objects.filter(household_number=number, slum_id=slum_id, city_id=city_id)
+    rhs_data = merged_over_visits(rows, rhs_data)
     fields = {
         "rhs_data": rhs_data,
         "submission_date": record.get("last_modified_date_time") or (record.get("audit") or {}).get("Last modified at"),
         "created_date": record.get("registration_date") or record.get("Registration date"),
     }
-    rows = HouseholdData.objects.filter(household_number=number, slum_id=slum_id, city_id=city_id)
     if rows.exists():
         rows.update(**fields)
     else:

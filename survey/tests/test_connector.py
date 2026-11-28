@@ -93,6 +93,15 @@ class RecordSemanticsTests(ConnectorTestCase):
         self.assertEqual(self.provider.subject_calls, [])
         self.assertEqual(self.provider.legacy_calls, [("encounter", "enc-1")], "only the first pass reached legacy")
 
+    def test_save_unchanged_hands_an_unchanged_record_to_legacy_again(self):
+        self.with_subject()
+        connector.sync_record("encounter", raw(self.encounter()), self.context)
+        later = SyncContext(self.provider)
+        later.save_unchanged = True
+        self.assertTrue(connector.sync_record("encounter", raw(self.encounter()), later))
+        self.assertEqual(self.provider.legacy_calls, [("encounter", "enc-1"), ("encounter", "enc-1")])
+        self.assertEqual(Record.objects.count(), 1)
+
     def test_an_edited_record_is_processed_again(self):
         self.with_subject()
         connector.sync_record("encounter", raw(self.encounter()), self.context)

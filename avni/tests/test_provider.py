@@ -318,6 +318,42 @@ class LegacyDispatchTests(TestCase):
         self.assertEqual(rhs["group_el9cl08/Type_of_water_connection"], "Own")
         self.assertIn("Last_modified_date", rhs)
 
+    def save_dses_visit(self, encounter_type, observations):
+        self.with_subject(subject_record(subject_type="Detailed Socio Economic Survey"))
+        raw = encounter_record(encounter_type=encounter_type, observations=observations)
+        self.assertTrue(self.provider.legacy_save("encounter", raw, self.context))
+        return HouseholdData.objects.get(household_number="42").rhs_data
+
+    def test_a_dses_toilet_at_home_counts_as_own_toilet(self):
+        rhs = self.save_dses_visit("Sanitation INP", {"Do you have a toilet at home?": "Yes"})
+        self.assertEqual(rhs["group_oi8ts04/Current_place_of_defecation"], "Own toilet")
+
+    def test_a_dses_place_of_defecation_feeds_the_sanitation_filters(self):
+        rhs = self.save_dses_visit("Sanitation INP", {
+            "Do you have a toilet at home?": "No", "Current place of defecation": "Public toilet(PTB)"})
+        self.assertEqual(rhs["group_oi8ts04/Current_place_of_defecation"], "Public toilet outside slum")
+        self.assertEqual(rhs["Current place of defecation"], "Public toilet(PTB)", "the AVNI answer is kept too")
+
+    def test_a_household_sanitation_visit_still_reads_the_final_place(self):
+        self.with_subject(subject_record())
+        raw = encounter_record(encounter_type="Sanitation", observations={
+            "Do you have a toilet at home?": "Yes", "Current place of defecation": "Use CTB",
+            "Final current place of defecation": "Shared toilet"})
+        self.provider.legacy_save("encounter", raw, self.context)
+        rhs = HouseholdData.objects.get(household_number="42").rhs_data
+        self.assertEqual(rhs["group_oi8ts04/Current_place_of_defecation"], "Shared toilet")
+
+    def test_a_dses_drinking_water_source_feeds_the_water_filters(self):
+        rhs = self.save_dses_visit("Water INP", {"What is the source of drinking water": "Household connection"})
+        self.assertEqual(rhs["group_el9cl08/Type_of_water_connection"], "Individual connection")
+        self.assertEqual(rhs["What is the source of drinking water"], "Household connection")
+
+    def test_a_dses_waste_answer_feeds_the_waste_filters(self):
+        rhs = self.save_dses_visit("Waste INP", {"How do you dispose your solid waste": "Door to door Ghanta Gaadi"})
+        self.assertEqual(rhs["group_el9cl08/Facility_of_solid_waste_collection"], "Door to door waste collection")
+        rhs = self.save_dses_visit("Waste INP", {"How do you dispose your solid waste": "Ghanta Gadi – Main Road Collection"})
+        self.assertEqual(rhs["group_el9cl08/Facility_of_solid_waste_collection"], "Ghanta gaadi")
+
     def test_an_encounter_type_with_no_map_merges_under_avni_names(self):
         self.with_subject(subject_record(subject_type="Detailed Socio Economic Survey"))
         raw = encounter_record(encounter_type="Housing INP", observations={"Roof type": "Tin"})

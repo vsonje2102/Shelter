@@ -96,7 +96,8 @@ def sync_record(kind, raw, context, only_slums=None):
             store_quietly(kind, raw, context)
         return False
 
-    if store.unchanged(source.key, facts.external_id, facts.last_modified) and not source.legacy_missing(kind, raw):
+    if (not context.save_unchanged and store.unchanged(source.key, facts.external_id, facts.last_modified)
+            and not source.legacy_missing(kind, raw)):
         context.bump("unchanged")
         return False
 

@@ -226,6 +226,11 @@ TOWN_SLUM_IDS = ["1971", "1972", "2023"]
 # distinct rule.
 HIDE_POST_SBM_SLUM_IDS = ["1971", "1972", "2023"]
 
+# Cities whose filter panel leaves out the SBM filters (the "post SBM" section and
+# SBM_FILTER_NAMES); the other sanitation filters stay. 19 = Ichalkaranji.
+HIDE_SBM_CITY_IDS = [19]
+SBM_FILTER_NAMES = ["SBM Toilets"]
+
 # Map layers whose geometry is always sent inline, even in ?geom=panel mode.
 # They are only a handful of features each and the panel is unusable without
 # them: the boundary is auto-selected on open, and "Admin Ward Area" backs the
@@ -626,6 +631,10 @@ def get_component(request, slum_id):
         )
     if slum_id in HIDE_POST_SBM_SLUM_IDS:
         metadata_qs = metadata_qs.exclude(section__name="Status of sanitation (post SBM)")
+    if slum.electoral_ward.administrative_ward.city_id in HIDE_SBM_CITY_IDS:
+        metadata_qs = metadata_qs.exclude(section__name="Status of sanitation (post SBM)").exclude(
+            name__in=SBM_FILTER_NAMES
+        )
     metadata = list(metadata_qs)
     _log_component_timing(
         "metadata_lookup",

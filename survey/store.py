@@ -48,6 +48,7 @@ class SyncContext(object):
         self.needed = set()
         self.household_rows = {}
         self.duplicate_households = None
+        self.save_unchanged = False
         self.counts = OrderedDict((name, 0) for name in COUNTERS)
 
     def subject(self, subject_external_id):

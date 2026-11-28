@@ -610,6 +610,7 @@ def legacy_encounter(raw):
         return raw
     copy = dict(raw)
     copy["Encounter type"] = twin
+    copy["observations"] = mappings.twin_observations(twin, raw.get("observations") or {})
     return copy
 
 

@@ -609,7 +609,11 @@ function generate_RIM(result) {
 
     $.each(result, function (k, v) {
         var modal = $("#myModal").clone();
-        modal.find("#modelhdtext").text(modelsection[k] || "");
+        var title = modelsection[k] || "";
+        if (k === "Toilet" && $("#hide_sbm").val() === "1") {
+            title = "Status of sanitation";
+        }
+        modal.find("#modelhdtext").text(title);
         modal.attr("id", k);
 
         var spstr = "";
@@ -754,13 +758,14 @@ function generate_filter(globalJsonData, slumId, result) {
         counter++;
         var label = Object.keys(globalJsonData).length > 0 ? globalJsonData[k] : k;
 
-        // Display-only title override for slums 1971/1972/2023: drop the
-        // "(pre SBM)" qualifier from the accordion header. `k` itself (used
-        // for grouping, the panel-collapse `name` attribute, and the RIM
-        // modal's `modelsection["Toilet"]` lookup in generate_RIM) is left
-        // untouched so those matches keep working.
+        // Display-only title override for slums 1971/1972/2023 and the
+        // HIDE_SBM_CITY_IDS cities (#hide_sbm): drop the "(pre SBM)" qualifier
+        // from the accordion header. `k` itself (used for grouping, the
+        // panel-collapse `name` attribute, and the RIM modal's
+        // `modelsection["Toilet"]` lookup in generate_RIM) is left untouched
+        // so those matches keep working.
         if (k === "Status of sanitation (pre SBM)" &&
-            ["1971", "1972", "2023"].indexOf(String(slumId)) !== -1) {
+            (["1971", "1972", "2023"].indexOf(String(slumId)) !== -1 || $("#hide_sbm").val() === "1")) {
             label = "Status of sanitation";
         }
 

@@ -31,6 +31,7 @@ from django.contrib.auth import *
 from django.contrib.auth.models import User, Group
 from component.cipher import *
 from component.view3d import can_view_3d
+from component.views import HIDE_SBM_CITY_IDS
 from utils.utils_permission import access_right
 import urllib
 import numpy as np
@@ -678,6 +679,7 @@ def city_wise_map(request, key, slumname=None, flag=True):
     if city:
         context['city_id'] = city.id
         context['city_name'] = city.name.city_name
+        context['hide_sbm'] = city.id in HIDE_SBM_CITY_IDS
     else:
         context['error'] = "URL incorrect"
 

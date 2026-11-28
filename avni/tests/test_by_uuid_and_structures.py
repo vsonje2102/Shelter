@@ -89,6 +89,32 @@ class StructureTests(TestCase):
         self.assertEqual(row.rhs_data["group_oi8ts04/Current_place_of_defecation"], "Own toilet")
         self.assertEqual(row.rhs_data["Household_number"], "7")
 
+    def test_resave_keeps_the_visit_answers(self):
+        structures.save_structure_record(self.structure())
+        row = HouseholdData.objects.get(household_number="7")
+        row.rhs_data["How do you dispose your solid waste"] = "Open space"
+        row.save()
+        structures.save_structure_record(self.structure(**{"Ward No": "13"}))
+        rhs = HouseholdData.objects.get(household_number="7").rhs_data
+        self.assertEqual(rhs["How do you dispose your solid waste"], "Open space")
+        self.assertEqual(rhs["Select Ward"], "13")
+
+    def test_resave_drops_answers_of_another_subject_on_the_same_number(self):
+        HouseholdData.objects.create(household_number="7", slum=self.slum, city=self.city, submission_date="2026-01-01",
+                                     rhs_data={"rhs_uuid": "someone-else", "Old visit": "x"})
+        structures.save_structure_record(self.structure())
+        rhs = HouseholdData.objects.get(household_number="7").rhs_data
+        self.assertNotIn("Old visit", rhs)
+        self.assertEqual(rhs["rhs_uuid"], "st-1")
+
+    def test_shop_answers_go_when_a_shop_becomes_a_home(self):
+        structures.save_structure_record(self.structure(**{
+            "Type of structure occupancy_1": "Shop", "If shop, type of occupancy ?": "In Use"}))
+        structures.save_structure_record(self.structure(**{"Type of structure occupancy_1": "Occupied house"}))
+        rhs = HouseholdData.objects.get(household_number="7").rhs_data
+        self.assertNotIn("If shop, type of occupancy ?", rhs)
+        self.assertEqual(rhs["Type_of_structure_occupancy"], "Occupied house")
+
     def test_empty_observations_not_saved(self):
         record = self.structure()
         record["observations"] = {}

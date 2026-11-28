@@ -109,6 +109,20 @@ LEGACY_TWIN_TYPES = {
     "Electricity INP": "Electricity",
 }
 
+# DSES visit question -> its Household twin's question, the one the map filters are fed from.
+LEGACY_TWIN_QUESTIONS = {
+    "Water": {"What is the source of drinking water": "Type of water connection ?"},
+    "Waste": {"How do you dispose your solid waste": "How do you dispose your solid waste ?"},
+}
+LEGACY_TWIN_ANSWERS = {
+    "Type of water connection ?": {"Household connection": "Individual connection"},
+    "How do you dispose your solid waste ?": {
+        "Door to door Ghanta Gaadi": "Door to door waste collection",
+        "Ghanta Gadi – Main Road Collection": "Ghanta gaadi",
+    },
+    "Final current place of defecation": {"Public toilet(PTB)": "Public toilet outside slum"},
+}
+
 # Single renames applied to direct encounters before merging into rhs_data.
 ENCOUNTER_RENAMES = {
     "Water": {"Type of water connection ?": "group_el9cl08/Type_of_water_connection"},
@@ -203,12 +217,35 @@ def merge_rhs_keys(existing, incoming):
     for rhs_key, concept in RHS_KEYS.items():
         if concept in incoming:
             incoming[rhs_key] = incoming.pop(concept)
+    drop_occupancy_only_keys(existing)
+    existing.update(convert_answers(incoming))
+    return existing
+
+
+def drop_occupancy_only_keys(existing):
+    """Shop / unoccupied-only answers go before a merge; the new registration brings them back if still true."""
     occupancy = existing.get("Type_of_structure_occupancy")
     drop = SHOP_ONLY_KEYS if occupancy == "Shop" else UNOCCUPIED_ONLY_KEYS if occupancy == "Unoccupied house" else []
     for key in drop:
         existing.pop(key, None)
-    existing.update(convert_answers(incoming))
     return existing
+
+
+def twin_observations(encounter_type, observations):
+    """A DSES visit's answers, also copied under its Household twin's questions (LEGACY_TWIN_QUESTIONS)."""
+    data = dict(observations)
+    if encounter_type == "Sanitation":
+        if data.get("Do you have a toilet at home?") == "Yes":
+            data["Final current place of defecation"] = "Own toilet"
+        elif data.get("Current place of defecation"):
+            data["Final current place of defecation"] = data["Current place of defecation"]
+    for question, twin in LEGACY_TWIN_QUESTIONS.get(encounter_type, {}).items():
+        if question in data:
+            data[twin] = data[question]
+    for twin, table in LEGACY_TWIN_ANSWERS.items():
+        if twin in data:
+            data[twin] = converted(data[twin], table)
+    return data
 
 
 def map_factsheet_keys(observations):
